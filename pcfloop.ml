@@ -19,7 +19,7 @@ let main () =
   try
     let prog = Pcfparse.main Pcflex.lex lexbuf in
     Printf.printf "Programme reconnu avec succès.\n\n";
-    Pfacast.print_program stdout prog;
+    Pcfast.print_program stdout prog;
     print_newline ()
   with
   | Pcflex.Eoi ->

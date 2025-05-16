@@ -148,7 +148,7 @@ let yyact = [|
 # 18 "pcfparse.mly"
               ( _1 )
 # 151 "pcfparse.ml"
-               : program))
+               : Pcfast.program))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'decl) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'decls) in
@@ -316,4 +316,4 @@ let yytables =
     Parsing.names_const=yynames_const;
     Parsing.names_block=yynames_block }
 let main (lexfun : Lexing.lexbuf -> token) (lexbuf : Lexing.lexbuf) =
-   (Parsing.yyparse yytables 1 lexfun lexbuf : program)
+   (Parsing.yyparse yytables 1 lexfun lexbuf : Pcfast.program)

@@ -20,4 +20,4 @@ type token =
   | EOF
 
 val main :
-  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> program
+  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Pcfast.program

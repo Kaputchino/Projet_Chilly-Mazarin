@@ -6,17 +6,20 @@ pcflex.cmx : \
     pcfparse.cmx
 pcfloop.cmo : \
     pcfparse.cmi \
-    pcflex.cmo
+    pcflex.cmo \
+    pcfast.cmo
 pcfloop.cmx : \
     pcfparse.cmx \
-    pcflex.cmx
+    pcflex.cmx \
+    pcfast.cmx
 pcfparse.cmo : \
     pcfast.cmo \
     pcfparse.cmi
 pcfparse.cmx : \
     pcfast.cmx \
     pcfparse.cmi
-pcfparse.cmi :
+pcfparse.cmi : \
+    pcfast.cmo
 pcfsem.cmo : \
     pcfast.cmo
 pcfsem.cmx : \

@@ -10,7 +10,7 @@ open Pcfast
 %token EOF
 
 %start main
-%type <program> main
+%type <Pcfast.program> main
 
 %%
 
