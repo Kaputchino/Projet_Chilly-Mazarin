@@ -78,28 +78,25 @@ rule lex = parse
            courante. *)
         incr_line_number lexbuf ;
         lex lexbuf }
-  | ['0'-'9']+ as lxm
-      { INT(int_of_string lxm) }
   | [ 'A'-'Z' 'a'-'z' ] [ 'A'-'Z' 'a'-'z' ]* as lxm
       { match lxm with
-          "let" -> LET
-        | "rec" -> REC
-        | "in" -> IN
-        | "fun" -> FUN
-        | "if" -> IF
-        | "then" -> THEN
-        | "gate" -> ELSE
+          "input" -> INPUT
+        | "gate" -> GATE
+        | "print" -> PRINT
         | "true" -> TRUE
         | "false" -> FALSE
         | _ -> IDENT(lxm) }
-  | "="   { EQUAL }
-  | ">"   { GREATER} | "<"  { SMALLER }
-  | ">="  { GREATEREQUAL} | "<="  { SMALLEREQUAL }
-  | "+"   { PLUS } | "-"   { MINUS } | "*" { MULT } | "/" { DIV }
-  | ";;"   { SEMISEMI }
-  | "->"  { ARROW }
-  | '('   { LPAR }
-  | ')'   { RPAR }
+  | "."          { DOT }
+  | "="          { EQUAL }
+  | ","          { COMMA }
+  | "("          { LPAREN }
+  | ")"          { RPAREN }
+  | "{"          { LBRACE }
+  | "}"          { RBRACE }
+  | ";"          { SEMICOLON }
+  | "+"          { OR }
+  | "-"          { AND }
+  | "!"          { NOT }
   | '"'   { reset_string_buffer();
             in_string lexbuf;
             STRING (get_stored_string()) }
