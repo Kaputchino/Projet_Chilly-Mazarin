@@ -1,66 +1,48 @@
-(* Ce fichier contient la définition du type OCaml des arbres de
- * syntaxe abstraite du langage, ainsi qu'un imprimeur des phrases
- * du langage.
-*)
-
 type expr =
-  | EInt of int                                 (* 1, 2, 3 *)
-  | EBool of bool                               (* true, false *)
-  | EString of string                           (* "hello" *)
-  | EIdent of string                            (* x, toto, fact *)
-  | EApp of (expr * expr)                       (* application e1 e2 *)
-  | EMonop of (string * expr)                   (* -e *)
-  | EBinop of (string * expr * expr)            (* e1 + e2 *)
-  | EIf of (expr * expr * expr)                 (* if e1 then e2 else e3 *)
-  | EFun of (string * expr)                     (* fun v -> e *)
-  | ELet of (string * expr * expr)              (* let x = e1 in e2 *)
-  | ELetrec of (string * string * expr * expr)  (* let rec f x = e1 in e2 *)
-;;
+  | True
+  | False
+  | Not of expr
+  | And of expr * expr
+  | Or of expr * expr
+  | Var of string * string option
+  | Parens of expr
+
+type stmt =
+  | Assign of string * expr
+
+type decl =
+  | InputDecl of string
+  | GateDecl of string * string list * string list * stmt list
+  | PrintStmt of string * string * string option
+
+type program = decl list
 
 
-(* Extrait les parametres d'une fonction anonyme
-          (fun x1 -> fun x2 -> ... -> e)
-   et produit
-          ([x1; x2; ...], e)
- *)
-let params_body e =
-  let rec un_body params expr = match expr with
-  | EFun( p, e) -> un_body (p::params) e
-  | e -> (List.rev params, e) in
-  un_body [] e
-;;
+let rec print_expr oc = function
+  | True -> output_string oc "true"
+  | False -> output_string oc "false"
+  | Not e -> Printf.fprintf oc "(!%a)" print_expr e
+  | And (e1, e2) -> Printf.fprintf oc "(%a - %a)" print_expr e1 print_expr e2
+  | Or (e1, e2) -> Printf.fprintf oc "(%a + %a)" print_expr e1 print_expr e2
+  | Var (id, None) -> output_string oc id
+  | Var (id, Some sub) -> Printf.fprintf oc "%s.%s" id sub
+  | Parens e -> Printf.fprintf oc "(%a)" print_expr e
 
+let print_stmt oc = function
+  | Assign (v, e) -> Printf.fprintf oc "%s = %a;" v print_expr e
 
-(* Note : dans le printf d'OCaml, le format %a
-   correspond a 2 arguments consecutifs :
-        - une fonction d'impression de type (out_channel -> 'a -> unit)
-        - un argument a imprimer, de type 'a
-   Voir le cas EApp ci-dessous.
- *)
-let rec print oc = function
-  | EInt n -> Printf.fprintf oc "%d" n
-  | EBool b -> Printf.fprintf oc "%s" (if b then "true" else "false")
-  | EIdent s -> Printf.fprintf oc "%s" s
-  | EString s -> Printf.fprintf oc "\"%s\"" s
-  | EApp (e1, e2) -> Printf.fprintf oc "(%a %a)" print e1 print e2
-  | ELet (f, e1, e2) ->
-      let (params, e) = params_body e1 in
-      Printf.fprintf oc "(let %s %a= %a in %a)"
-        f
-        (fun oc -> List.iter (fun s -> Printf.fprintf oc "%s " s)) params
-        print e
-        print e2
-  | ELetrec (f, x, e1, e2) ->
-      let (params, e) = params_body e1 in
-      Printf.fprintf oc "(let rec %s %s %a= %a in %a)"
-        f x
-        (fun oc -> List.iter (fun s -> Printf.fprintf oc "%s " s)) params
-        print e
-        print e2
-  | EFun (x, e) -> Printf.fprintf oc "(fun %s -> %a)"  x print e
-  | EIf (test, e1, e2) ->
-      Printf.fprintf oc "(if %a then %a else %a)" print test print e1 print e2
-  | EBinop (op,e1,e2) ->
-      Printf.fprintf oc "(%a %s %a)" print e1 op print e2
-  | EMonop (op,e) -> Printf.fprintf oc "%s%a" op print e
-;;
+let print_decl oc = function
+  | InputDecl id -> Printf.fprintf oc "input %s;" id
+  | GateDecl (name, ins, outs, stmts) ->
+      Printf.fprintf oc "gate %s(%s)(%s) {\n" name
+        (String.concat ", " ins)
+        (String.concat ", " outs);
+      List.iter (fun s -> Printf.fprintf oc "  %a\n" print_stmt s) stmts;
+      Printf.fprintf oc "}"
+  | PrintStmt (msg, id, sub) ->
+      match sub with
+      | None -> Printf.fprintf oc "print(\"%s\", %s);" msg id
+      | Some f -> Printf.fprintf oc "print(\"%s\", %s.%s);" msg id f
+
+let print_program oc prog =
+  List.iter (fun d -> print_decl oc d; Printf.fprintf oc "\n") prog

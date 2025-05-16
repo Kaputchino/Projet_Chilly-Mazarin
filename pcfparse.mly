@@ -1,83 +1,60 @@
 %{
-open Pcfast ;;
-
-let rec mkfun params expr =
-  match params with
-  | [] -> expr
-  | p :: prms -> EFun(p, mkfun prms expr)
-;;
+open Pcfast
 %}
 
-%token <int> INT
+%token INPUT GATE PRINT TRUE FALSE
+%token NOT AND OR
 %token <string> IDENT
-%token TRUE FALSE
-%token INPUT GATE PRINT AND OR NOT
 %token <string> STRING
-%token EQUAL DOT LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMA
-%token LPAR RPAR SEMISEMI
+%token DOT EQUAL COMMA LPAREN RPAREN LBRACE RBRACE SEMICOLON
 %token EOF
-%left EQUAL GREATER SMALLER 
-%left PLUS MINUS 
 
 %start main
-%type <Pcfast.expr> main
+%type <program> main
 
 %%
 
-main: expr SEMISEMI { $1 }
-    | SEMISEMI main { $2 }
-;
+main:
+  | decls EOF { $1 }
 
-/* Grammaire */
+decls:
+  | decl decls { $1 :: $2 }
+  | /* empty */ { [] }
+
+decl:
+  | INPUT IDENT SEMICOLON
+      { InputDecl($2) }
+
+  | GATE IDENT LPAREN params RPAREN LPAREN params RPAREN LBRACE stmts RBRACE
+      { GateDecl($2, $4, $7, $10) }
+
+  | PRINT LPAREN STRING COMMA IDENT idnext RPAREN SEMICOLON
+      { PrintStmt($3, $5, $6) }
+
+params:
+  | IDENT more_params { $1 :: $2 }
+
+more_params:
+  | COMMA params { $2 }
+  | /* empty */   { [] }
+
+stmts:
+  | stmt stmts { $1 :: $2 }
+  | /* empty */ { [] }
+
+stmt:
+  | IDENT EQUAL expr SEMICOLON
+      { Assign($1, $3) }
 
 expr:
-  LET REC IDENT IDENT seqident EQUAL expr IN expr
-         { ELetrec ($3, $4, (mkfun $5 $7), $9) }
-| LET IDENT seqident EQUAL expr IN expr
-         { ELet ($2, (mkfun $3 $5) , $7) }
-| FUN IDENT ARROW expr
-         { EFun ($2, $4) }
-| IF expr THEN expr ELSE expr
-         { EIf ($2, $4, $6) }
-| arith_expr
-         { $1 }
-;
+  | LPAREN expr RPAREN     { Parens($2) }
+  | NOT expr               { Not($2) }
+  | IDENT idnext           { Var($1, $2) }
+  | expr AND expr          { And($1, $3) }
+  | expr OR expr           { Or($1, $3) }
+  | TRUE                   { True }
+  | FALSE                  { False }
 
-seqident:
-  IDENT seqident  { $1 :: $2 }
-| /* rien */      { [] }
-;
-
-arith_expr:
-  arith_expr EQUAL arith_expr        { EBinop ("=", $1, $3) }
-| arith_expr GREATER arith_expr      { EBinop (">", $1, $3) }
-| arith_expr GREATEREQUAL arith_expr { EBinop (">=", $1, $3) }
-| arith_expr SMALLER arith_expr      { EBinop ("<", $1, $3) }
-| arith_expr SMALLEREQUAL arith_expr { EBinop ("<=", $1, $3) }
-| arith_expr PLUS arith_expr         { EBinop ("+", $1, $3) }
-| arith_expr MINUS arith_expr        { EBinop ("-", $1, $3) }
-| arith_expr MULT arith_expr         { EBinop ("*", $1, $3) }
-| arith_expr DIV arith_expr          { EBinop ("/", $1, $3) }
-| application                        { $1 }
-;
-
-/* On considere ci-dessous que MINUS atom est dans la categorie
- * des applications. Cela permet de traiter n - 1
- * comme une soustraction binaire, et       f (- 1)
- * comme l'application de f a l'oppose de 1.
- */
-
-application:
-  application atom { EApp ($1, $2) }
-| MINUS atom       { EMonop ("-", $2) }
-| atom             { $1 }
-;
-
-atom:
-  INT            { EInt ($1) }
-| TRUE           { EBool (true) }
-| FALSE          { EBool (false) }
-| STRING         { EString ($1) }
-| IDENT          { EIdent ($1) }
-| LPAR expr RPAR { $2 }
-;
+idnext:
+  | DOT IDENT              { Some($2) }
+  | /* empty */            { None }

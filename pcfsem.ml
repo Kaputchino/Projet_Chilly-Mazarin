@@ -1,92 +1,103 @@
-open Pcfast;;
+open Pcfast
 
-type pcfval =
-  | Intval of int
-  | Boolval of bool
-  | Stringval of string
-  | Funval of { param: string; body: expr; env: environment }
-  | Funrecval of { fname: string; param: string; body: expr; env: environment }
+type signal = bool
 
-and environment = (string * pcfval) list
-;;
+type context = {
+  inputs : (string, signal) Hashtbl.t;
+  signals : (string, signal) Hashtbl.t;
+  gates : (string, gatedef) Hashtbl.t;
+}
 
+and gatedef = {
+  name : string;
+  inputs : string list;
+  outputs : string list;
+  body : stmt list;
+}
 
-let rec printval = function
-  | Intval n -> Printf.printf "%d" n
-  | Boolval b -> Printf.printf "%s" (if b then "true" else "false")
-  | Stringval s -> Printf.printf "%S" s
-  | Funval _-> Printf.printf "<fun>"
-  | Funrecval _ -> Printf.printf "<fun rec>"
-;;
+let error msg = raise (Failure msg)
 
-(* Environnement. *)
-let init_env = [] ;;
+(* Évaluation d'expressions logiques *)
+let rec eval_expr ctx expr =
+  let get_var name =
+    try Hashtbl.find ctx.signals name
+    with Not_found ->
+      try Hashtbl.find ctx.inputs name
+      with Not_found -> error ("Signal non défini : " ^ name)
+  in
+  match expr with
+  | True -> true
+  | False -> false
+  | Not e -> not (eval_expr ctx e)
+  | And (a, b) -> (eval_expr ctx a) && (eval_expr ctx b)
+  | Or (a, b) -> (eval_expr ctx a) || (eval_expr ctx b)
+  | Parens e -> eval_expr ctx e
+  | Var (id, None) -> get_var id
+  | Var (id, Some sub) ->
+      let full = id ^ "." ^ sub in
+      get_var full
 
-let error msg = raise (Failure msg) ;;
+(* Évaluation d'une instruction *)
+let eval_stmt ctx stmt =
+  match stmt with
+  | Assign (id, expr) ->
+      let value = eval_expr ctx expr in
+      Hashtbl.replace ctx.signals id value
 
-let extend rho x v = (x, v) :: rho ;;
+(* Exécution d'une gate *)
+let exec_gate ctx gate_name =
+  let gate =
+    try Hashtbl.find ctx.gates gate_name
+    with Not_found -> error ("Gate non trouvée : " ^ gate_name)
+  in
+  let local_ctx = {
+    ctx with signals = Hashtbl.create 10;
+  } in
+  List.iter (fun id ->
+    let v = Hashtbl.find ctx.signals id in
+    Hashtbl.add local_ctx.signals id v
+  ) gate.inputs;
+  List.iter (eval_stmt local_ctx) gate.body;
+  List.iter (fun id ->
+    let v = Hashtbl.find local_ctx.signals id in
+    Hashtbl.replace ctx.signals (gate.name ^ "." ^ id) v
+  ) gate.outputs
 
-let lookup var_name rho =
-  try List.assoc var_name rho
-  with Not_found -> error (Printf.sprintf "Undefined ident '%s'" var_name)
-;;
+(* Exécution d’un programme complet *)
+let run_program prog =
+  let ctx = {
+    inputs = Hashtbl.create 10;
+    signals = Hashtbl.create 100;
+    gates = Hashtbl.create 50;
+  } in
 
+  (* Déclaration des entrées et des gates *)
+  List.iter (function
+    | InputDecl id ->
+        Hashtbl.add ctx.inputs id false;
+        Hashtbl.add ctx.signals id false
+    | GateDecl (name, ins, outs, body) ->
+        Hashtbl.add ctx.gates name { name; inputs = ins; outputs = outs; body }
+    | _ -> ()
+  ) prog;
 
-let rec eval e rho =
-  match e with
-  | EInt n -> Intval n
-  | EBool b -> Boolval b
-  | EString s -> Stringval s
-  | EIdent v -> lookup v rho
-  | EApp (e1, e2) -> (
-      match (eval e1 rho, eval e2 rho) with
-      | (Funval { param; body; env }, v2) ->
-          let rho1 = extend env param v2 in
-          eval body rho1
-      | (Funrecval { fname; param; body; env } as fval, v2) ->
-          let rho1 = extend env fname fval in
-          let rho2 = extend rho1 param v2 in
-          eval body rho2
-      | (_, _) -> error "Apply a non-function"
-     )
-  | EMonop ("-", e) -> (
-      match eval e rho with
-      | Intval n -> Intval (-n)
-      | _ -> error "Opposite of a non-integer"
-     )
-  | EMonop (op, _) -> error (Printf.sprintf "Unknown unary op: %s" op)
-  | EBinop (op, e1, e2) -> (
-      match (op, eval e1 rho, eval e2 rho) with
-      | ("+", Intval n1, Intval n2) -> Intval (n1 + n2)
-      | ("-", Intval n1, Intval n2) -> Intval (n1 - n2)
-      | ("*", Intval n1, Intval n2) -> Intval (n1 * n2)
-      | ("/", Intval n1, Intval n2) -> Intval (n1 / n2)
-      | (("+"|"-"|"*"|"/"), _, _) ->
-          error "Arithmetic on non-integers"
-      | ("<",  Intval n1, Intval n2) -> Boolval (n1 < n2)
-      | (">",  Intval n1, Intval n2) -> Boolval (n1 > n2)
-      | ("=",  Intval n1, Intval n2) -> Boolval (n1 = n2)
-      | ("<=", Intval n1, Intval n2) -> Boolval (n1 <= n2)
-      | (">=", Intval n1, Intval n2) -> Boolval (n1 >= n2)
-      | (("<"|">"|"="|"<="|">="), _, _) ->
-          error "Comparison of non-integers"
-      | _ -> error (Printf.sprintf "Unknown binary op: %s" op)
-     )
-  | EIf (e, e1, e2) -> (
-      match eval e rho with
-      | Boolval b -> eval (if b then e1 else e2) rho
-      | _ -> error "Test on a non-boolean"
-     )
-  | EFun (a, e) -> Funval { param = a; body = e; env = rho }
-  | ELet (x, e1, e2) ->
-      let v1 = eval e1 rho in
-      let rho1 = extend rho x v1 in
-      eval e2 rho1
-  | ELetrec (f, x, e1, e2) ->
-      let fval = Funrecval { fname = f; param = x; body = e1; env = rho } in
-      let rho1 = extend rho f fval in
-      eval e2 rho1
-;;
+  (* Exécution des print avec calcul si besoin *)
+  List.iter (function
+    | PrintStmt (msg, id, opt) ->
+        let full =
+          match opt with
+          | None -> id
+          | Some sub ->
+              let gate = id in
+              if Hashtbl.mem ctx.gates gate then exec_gate ctx gate;
+              gate ^ "." ^ sub
+        in
+        let value =
+          try Hashtbl.find ctx.signals full
+          with Not_found -> error ("Signal introuvable : " ^ full)
+        in
+        Printf.printf "%s %s = %b\n" msg full value
+    | _ -> ()
+  ) prog;
 
-
-let eval e = eval e init_env ;;
+  ctx

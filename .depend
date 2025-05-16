@@ -1,0 +1,23 @@
+pcfast.cmo :
+pcfast.cmx :
+pcflex.cmo : \
+    pcfparse.cmi
+pcflex.cmx : \
+    pcfparse.cmx
+pcfloop.cmo : \
+    pcfparse.cmi \
+    pcflex.cmo
+pcfloop.cmx : \
+    pcfparse.cmx \
+    pcflex.cmx
+pcfparse.cmo : \
+    pcfast.cmo \
+    pcfparse.cmi
+pcfparse.cmx : \
+    pcfast.cmx \
+    pcfparse.cmi
+pcfparse.cmi :
+pcfsem.cmo : \
+    pcfast.cmo
+pcfsem.cmx : \
+    pcfast.cmx
