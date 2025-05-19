@@ -22,8 +22,11 @@ decls:
   | /* empty */ { [] }
 
 decl:
+  | INPUT IDENT EQUAL boolval SEMICOLON
+      { InputDecl($2, Some $4) }
+
   | INPUT IDENT SEMICOLON
-      { InputDecl($2,None) }
+      { InputDecl($2, None) }
 
   | GATE IDENT LPAREN params RPAREN LPAREN params RPAREN LBRACE stmts RBRACE
       { GateDecl($2, $4, $7, $10) }
@@ -31,19 +34,11 @@ decl:
   | PRINT LPAREN STRING COMMA IDENT idnext RPAREN SEMICOLON
       { PrintStmt($3, $5, $6) }
 
-  | INPUT IDENT EQUAL boolval SEMICOLON
-    { InputDecl($2, Some $4) }
-
-boolval:
-  | TRUE  { true }
-  | FALSE { false }
-
 params:
   | IDENT more_params { $1 :: $2 }
-
 more_params:
   | COMMA params { $2 }
-  | /* empty */   { [] }
+  | /* empty */ { [] }
 
 stmts:
   | stmt stmts { $1 :: $2 }
@@ -65,3 +60,7 @@ expr:
 idnext:
   | DOT IDENT              { Some($2) }
   | /* empty */            { None }
+
+boolval:
+  | TRUE  { true }
+  | FALSE { false }

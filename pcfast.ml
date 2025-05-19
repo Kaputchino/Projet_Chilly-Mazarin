@@ -32,8 +32,13 @@ let print_stmt oc = function
   | Assign (v, e) -> Printf.fprintf oc "%s = %a;" v print_expr e
 
 let print_decl oc = function
-  | InputDecl (id, bo)-> Printf.fprintf oc "input %s;" id (*fix later*)
+  | InputDecl (id, None) ->
+      (* entrée sans valeur explicite *)
+      Printf.fprintf oc "input %s;" id
 
+  | InputDecl (id, Some v) ->
+      (* entrée avec valeur true / false *)
+      Printf.fprintf oc "input %s = %s;" id (if v then "true" else "false")
   | GateDecl (name, ins, outs, stmts) ->
       Printf.fprintf oc "gate %s(%s)(%s) {\n" name
         (String.concat ", " ins)

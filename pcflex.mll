@@ -78,7 +78,7 @@ rule lex = parse
            courante. *)
         incr_line_number lexbuf ;
         lex lexbuf }
-  | ['A'-'Z' 'a'-'z' '_']['A'-'Z' 'a'-'z' '0'-'9' '_']* as lxm
+| ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm
       { match lxm with
           "input" -> INPUT
         | "gate" -> GATE
@@ -102,44 +102,24 @@ rule lex = parse
             STRING (get_stored_string()) }
   | "//"  { in_cpp_comment lexbuf }
   | "/*"  { in_c_comment lexbuf }
-  | eof   { raise Eoi }
+  | eof   {  EOF  }
   | _     { raise (LexError (lexbuf.Lexing.lex_start_p,
                              lexbuf.Lexing.lex_curr_p)) }
 
-and in_string = parse
-    '"'
-      { () }
-  | '\\' ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
-      { store_string_char(char_for_backslash(Lexing.lexeme_char lexbuf 1));
-        in_string lexbuf }
-  | '\\' ['0'-'9'] ['0'-'9'] ['0'-'9']
-      { store_string_char(char_for_decimal_code lexbuf 1);
-        in_string lexbuf }
-  | '\\' 'x' ['0'-'9' 'a'-'f' 'A'-'F'] ['0'-'9' 'a'-'f' 'A'-'F']
-      { store_string_char(char_for_hexadecimal_code lexbuf 2);
-         in_string lexbuf }
-  | '\\' _ as chars
-      { skip_to_eol lexbuf; raise (Failure("Illegal escape: " ^ chars)) }
-  | newline as s
-      { for i = 0 to String.length s - 1 do
-          store_string_char s.[i];
-        done;
-        in_string lexbuf
-      }
-  | eof
-      { raise Eoi }
-  | _ as c
-      { store_string_char c; in_string lexbuf }
-
 and in_cpp_comment = parse
-    '\n' { lex lexbuf }
+  | '\n' { lex lexbuf }            (* retourne ce que donnera lex *)
+  | eof  { EOF }
   | _    { in_cpp_comment lexbuf }
-  | eof  { raise Eoi }
 
 and in_c_comment = parse
-    "*/" { lex lexbuf }
+  | "*/" { lex lexbuf }
+  | eof  { EOF }
   | _    { in_c_comment lexbuf }
-  | eof  { raise Eoi }
+
+and in_string = parse
+  | '"'  { STRING (get_stored_string ()) }   (* ← on ferme la chaîne *)
+  | _ as c
+      { store_string_char c; in_string lexbuf }
 
 and skip_to_eol = parse
     newline { () }
