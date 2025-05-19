@@ -33,6 +33,8 @@ decl:
 
   | PRINT LPAREN STRING COMMA IDENT idnext RPAREN SEMICOLON
       { PrintStmt($3, $5, $6) }
+  | IDENT EQUAL IDENT LPAREN args RPAREN SEMICOLON
+      { InstDecl($1, $3, $5) }
 
 params:
   | IDENT more_params { $1 :: $2 }
@@ -64,3 +66,8 @@ idnext:
 boolval:
   | TRUE  { true }
   | FALSE { false }
+args:
+  | IDENT more_args { $1 :: $2 }
+more_args:
+  | COMMA args { $2 }
+  | /* empty */ { [] }

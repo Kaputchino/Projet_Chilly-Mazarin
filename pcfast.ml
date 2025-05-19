@@ -11,9 +11,12 @@ type stmt =
   | Assign of string * expr
 
 type decl =
-  | InputDecl of string * bool option
-  | GateDecl of string * string list * string list * stmt list
-  | PrintStmt of string * string * string option
+  | InputDecl  of string * bool option
+  | GateDecl   of string * string list * string list * stmt list
+  | InstDecl   of string            (* alias, ex. g *)
+                * string            (* nom de la gate, ex. halfadder *)
+                * string list       (* arguments, ex. [a; super] *)
+  | PrintStmt  of string * string * string option
 
 type program = decl list
 
@@ -35,7 +38,8 @@ let print_decl oc = function
   | InputDecl (id, None) ->
       (* entrée sans valeur explicite *)
       Printf.fprintf oc "input %s;" id
-
+  | InstDecl (alias, gname, actuals) ->
+     Printf.fprintf oc "%s = %s(%s);" alias gname (String.concat ", " actuals)
   | InputDecl (id, Some v) ->
       (* entrée avec valeur true / false *)
       Printf.fprintf oc "input %s = %s;" id (if v then "true" else "false")
@@ -49,6 +53,7 @@ let print_decl oc = function
       match sub with
       | None -> Printf.fprintf oc "print(\"%s\", %s);" msg id
       | Some f -> Printf.fprintf oc "print(\"%s\", %s.%s);" msg id f
+
 
 let print_program oc prog =
   List.iter (fun d -> print_decl oc d; Printf.fprintf oc "\n") prog
