@@ -73,9 +73,10 @@ let run_program prog =
 
   (* Déclaration des entrées et des gates *)
   List.iter (function
-    | InputDecl id ->
-        Hashtbl.add ctx.inputs id false;
-        Hashtbl.add ctx.signals id false
+    | InputDecl (id, opt_val) ->
+        let value = match opt_val with Some v -> v | None -> false in
+        Hashtbl.add ctx.inputs id value;
+        Hashtbl.add ctx.signals id value
     | GateDecl (name, ins, outs, body) ->
         Hashtbl.add ctx.gates name { name; inputs = ins; outputs = outs; body }
     | _ -> ()

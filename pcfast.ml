@@ -11,7 +11,7 @@ type stmt =
   | Assign of string * expr
 
 type decl =
-  | InputDecl of string
+  | InputDecl of string * bool option
   | GateDecl of string * string list * string list * stmt list
   | PrintStmt of string * string * string option
 
@@ -32,7 +32,8 @@ let print_stmt oc = function
   | Assign (v, e) -> Printf.fprintf oc "%s = %a;" v print_expr e
 
 let print_decl oc = function
-  | InputDecl id -> Printf.fprintf oc "input %s;" id
+  | InputDecl (id, bo)-> Printf.fprintf oc "input %s;" id (*fix later*)
+
   | GateDecl (name, ins, outs, stmts) ->
       Printf.fprintf oc "gate %s(%s)(%s) {\n" name
         (String.concat ", " ins)
