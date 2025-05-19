@@ -6,7 +6,7 @@ gate not1(a)(out) {
 }
 
 gate and1(a, b)(out) {
-  out = a - b;
+  out = a + b;
 }
 
 print("OK", and1.out);
