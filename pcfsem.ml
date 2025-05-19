@@ -82,8 +82,18 @@ let run_program prog =
     | _ -> ()
   ) prog;
 
+  Hashtbl.iter (fun _ g -> exec_gate ctx g.name) ctx.gates;
+      (*auto print*)
+  Hashtbl.iter
+    (fun id v -> Printf.printf "input %s = %b\n" id v)
+    ctx.inputs;
+
+
   (* Exécution des print avec calcul si besoin *)
   List.iter (function
+    | PrintStmt (msg, id, None) when Hashtbl.mem ctx.inputs id ->
+        let v = Hashtbl.find ctx.inputs id in
+        Printf.printf "%s %s = %b\n" msg id v
     | PrintStmt (msg, id, opt) ->
         let full =
           match opt with
@@ -98,6 +108,7 @@ let run_program prog =
           with Not_found -> error ("Signal introuvable : " ^ full)
         in
         Printf.printf "%s %s = %b\n" msg full value
+        
     | _ -> ()
   ) prog;
 
