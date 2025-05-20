@@ -18,3 +18,13 @@ g.y;
 
 Afficher
 print(params);
+
+| symbole    | signification                                          |
+|------------|--------------------------------------------------------|
+| - & ∩ ∧    | AND                                                    |
+| + \| ∪ ∨   | OR                                                     |
+| input      | déclare une variable                                   |
+| gate       | déclare une gate                                       |
+| =          | assigne une valeur                                     |
+| .          | permet d'accéder à une variable d'une instance de gate |
+| !          | Inverse                                                |
