@@ -7,7 +7,8 @@ open Pcfast
 %token <string> IDENT
 %token <string> STRING
 %token DOT EQUAL COMMA LPAREN RPAREN LBRACE RBRACE SEMICOLON
-%token EOF
+%token EOF WRITE FILL
+
 
 %start main
 %type <Pcfast.program> main
@@ -20,6 +21,19 @@ main:
 decls:
   | decl decls { $1 :: $2 }
   | /* empty */ { [] }
+
+/* liste d’arguments : t1, t2, …                   */
+wtargets:
+  | wtarget more_wtargets { $1 :: $2 }
+more_wtargets:
+  | COMMA wtargets { $2 }
+  | /* empty */    { [] }
+
+/* une cible = ident ou ident.ident               */
+wtarget:
+  | IDENT DOT IDENT { TSignal($1, Some $3) }
+  | IDENT           { TSignal($1, None) }
+
 
 decl:
   | INPUT IDENT EQUAL boolval SEMICOLON
@@ -35,6 +49,9 @@ decl:
       { PrintStmt($3, $5, $6) }
   | IDENT EQUAL IDENT LPAREN args RPAREN SEMICOLON
       { InstDecl($1, $3, $5) }
+  | WRITE LPAREN STRING COMMA wtargets RPAREN SEMICOLON
+      { WriteStmt($3, $5) }        /* ← seulement 2 arguments : chemin + liste */
+
 
 params:
   | IDENT more_params { $1 :: $2 }

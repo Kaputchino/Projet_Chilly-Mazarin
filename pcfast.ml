@@ -10,6 +10,10 @@ type expr =
 type stmt =
   | Assign of string * expr
 
+type target =
+  | TGate   of string                   (* ha, fa … *)
+  | TSignal of string * string option   (* ha.sum / ha / a  *)
+
 type decl =
   | InputDecl  of string * bool option
   | GateDecl   of string * string list * string list * stmt list
@@ -17,6 +21,9 @@ type decl =
                 * string            (* nom de la gate, ex. halfadder *)
                 * string list       (* arguments, ex. [a; super] *)
   | PrintStmt  of string * string * string option
+  | WriteStmt of string * target list   (* chemin + liste de cibles *)
+                
+  
 
 type program = decl list
 
@@ -49,10 +56,21 @@ let print_decl oc = function
         (String.concat ", " outs);
       List.iter (fun s -> Printf.fprintf oc "  %a\n" print_stmt s) stmts;
       Printf.fprintf oc "}"
+  | WriteStmt (path, targets) ->
+      let pp_t oc = function
+        | TGate g                 -> Printf.fprintf oc "%s" g
+        | TSignal (id, None)      -> Printf.fprintf oc "%s" id
+        | TSignal (id, Some sub)  -> Printf.fprintf oc "%s.%s" id sub
+      in
+      Printf.fprintf oc "write(\"%s\"" path;
+      List.iter (fun t -> Printf.fprintf oc ", %a" pp_t t) targets;
+      Printf.fprintf oc ");"
+
   | PrintStmt (msg, id, sub) ->
       match sub with
       | None -> Printf.fprintf oc "print(\"%s\", %s);" msg id
       | Some f -> Printf.fprintf oc "print(\"%s\", %s.%s);" msg id f
+
 
 
 let print_program oc prog =

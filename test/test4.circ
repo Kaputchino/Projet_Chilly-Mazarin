@@ -21,3 +21,6 @@ print("Somme demi-add :", ha.sum);
 print("Retenue demi-add :", ha.carry);
 print("Somme finale :", fa.sum);
 print("Retenue finale :", fa.carry);
+
+write("eneffet.csv",fa);
+write("nah.csv",ha.sum);

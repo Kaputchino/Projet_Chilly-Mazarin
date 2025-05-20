@@ -20,10 +20,14 @@ and instance = {
   actuals : string list;
 }
 
-
-
 let error msg = raise (Failure msg)
 
+let string_of_bool = function true -> "true" | false -> "false"
+
+let keys tbl =
+  Hashtbl.fold (fun k _ acc -> k :: acc) tbl []
+
+  
 let find tbl name kind =
   try Hashtbl.find tbl name
   with Not_found ->
@@ -31,7 +35,7 @@ let find tbl name kind =
 
 
 
-      (* ──────────── définition mutuelle ──────────── *)
+
 let rec exec_gate ctx gate_name =
   (* récupère la définition *)
   let gate =
@@ -94,6 +98,67 @@ let exec_instance ctx inst =
     Hashtbl.replace ctx.signals (inst.alias ^ "." ^ o) v
   ) inst.gdef.outputs
 
+
+
+
+let read_header_if_exists path =
+  if Sys.file_exists path then
+    let ic = open_in path in
+    let line = input_line ic in
+    close_in ic;
+    String.split_on_char ',' line
+  else []
+
+let ensure_columns ctx targets header =
+  let cols = ref header in
+  let add_col c = if not (List.mem c !cols) then cols := !cols @ [c] in
+  List.iter (function
+    | TGate id ->
+        (* exécute d’abord  (instance ou gate) *)
+        if Hashtbl.mem ctx.instances id then
+          exec_instance ctx (Hashtbl.find ctx.instances id)
+        else if Hashtbl.mem ctx.gates id then
+          exec_gate ctx id;
+
+        (* ajoute toutes ses sorties (alias.prefix) *)
+        let add_outputs alias gdef =
+          List.iter (fun o -> add_col (alias ^ "." ^ o)) gdef.outputs
+        in
+        if Hashtbl.mem ctx.instances id then
+          let inst = Hashtbl.find ctx.instances id in
+          add_outputs inst.alias inst.gdef
+        else if Hashtbl.mem ctx.gates id then
+          let gdef = Hashtbl.find ctx.gates id in
+          add_outputs id gdef;
+
+        (* puis ajoute éventuels internes déjà présents *)
+        let prefix = id ^ "." in
+        Hashtbl.iter
+          (fun k _ -> if String.length k >= String.length prefix
+                      && String.sub k 0 (String.length prefix) = prefix
+                      then add_col k)
+          ctx.signals
+
+    | TSignal (id, opt) ->
+      let col = match opt with None -> id | Some f -> id ^ "." ^ f in
+      add_col col
+
+  ) targets;
+  !cols
+let row_of_columns ctx cols =
+  cols
+  |> List.map (fun c ->
+        if Hashtbl.find ctx.signals c then "TRUE" else "FALSE")
+  |> String.concat ","
+
+let write_csv path header row =
+  let oc = open_out path in
+  output_string oc (String.concat "," header ^ "\n" ^ row ^ "\n");
+  close_out oc
+
+
+      (* ──────────── définition mutuelle ──────────── *)
+
 (* Exécution d’un programme complet *)
 let run_program prog =
   let ctx = {
@@ -144,7 +209,32 @@ let run_program prog =
         let value = find ctx.signals full "print"
         in
         Printf.printf "%s %s = %b\n" msg full value
-        
+    | WriteStmt (path, targets) ->
+        (* 1 : exécuter chaque cible gate/instance pour remplir ctx.signals *)
+        List.iter (function
+          | TGate id when Hashtbl.mem ctx.gates id ->
+              exec_gate ctx id
+          | TGate id when Hashtbl.mem ctx.instances id ->
+              exec_instance ctx (Hashtbl.find ctx.instances id)
+          | TSignal (id,_) when Hashtbl.mem ctx.gates id ->
+              exec_gate ctx id
+          | TSignal (id,_) when Hashtbl.mem ctx.instances id ->
+              exec_instance ctx (Hashtbl.find ctx.instances id)
+          | _ -> ()
+        ) targets;
+
+        (* 2 : entête existant *)
+        let header0 = read_header_if_exists path in
+
+        (* 3 : nouvelles colonnes complètes *)
+        let header  = ensure_columns ctx targets header0 in
+
+        (* 4 : ligne de valeurs *)
+        let row     = row_of_columns ctx header in
+
+        (* 5 : écriture/écrasement *)
+        write_csv path header row;
+        Printf.printf "→ CSV mis à jour : %s\n" path
     | _ -> ()
   ) prog;
 

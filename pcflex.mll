@@ -85,6 +85,8 @@ rule lex = parse
         | "print" -> PRINT
         | "true" -> TRUE
         | "false" -> FALSE
+        | "write" -> WRITE
+        | "fill" -> FILL
         | _ -> IDENT(lxm) }
   | "."          { DOT }
   | "="          { EQUAL }
@@ -95,7 +97,13 @@ rule lex = parse
   | "}"          { RBRACE }
   | ";"          { SEMICOLON }
   | "+"          { OR }
+  | "|"          { OR }
+  | "&"          { AND }
   | "-"          { AND }
+  | "∨"          { OR }
+  | "∧"          { AND }
+  | "∪"          { OR }
+  | "∩"          { AND }
   | "!"          { NOT }
   | '"'   { reset_string_buffer();
             in_string lexbuf;
