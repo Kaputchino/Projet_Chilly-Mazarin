@@ -1,3 +1,4 @@
+type signal = TTrue | TFalse | TUndet
 type expr =
   | True
   | False
@@ -14,19 +15,21 @@ type target =
   | TGate   of string                   (* ha, fa … *)
   | TSignal of string * string option   (* ha.sum / ha / a  *)
 
-type decl =
-  | InputDecl  of string * bool option
-  | GateDecl   of string * string list * string list * stmt list
-  | InstDecl   of string            (* alias, ex. g *)
-                * string            (* nom de la gate, ex. halfadder *)
-                * string list       (* arguments, ex. [a; super] *)
-  | PrintStmt  of string * string * string option
-  | WriteStmt of string * target list   (* chemin + liste de cibles *)
+type decl =         
+  | InputDecl of string * signal option
+  | GateDecl  of string * string list * string list * stmt list
+  | InstDecl  of string * string * string list
+  | PrintStmt of string * string * string option
+  | WriteStmt of string * target list
                 
   
 
 type program = decl list
 
+let str_of_sig = function                 (* 3 *)
+  | TTrue  -> "true"
+  | TFalse -> "false"
+  | TUndet -> "undet"
 
 let rec print_expr oc = function
   | True -> output_string oc "true"
@@ -42,14 +45,13 @@ let print_stmt oc = function
   | Assign (v, e) -> Printf.fprintf oc "%s = %a;" v print_expr e
 
 let print_decl oc = function
-  | InputDecl (id, None) ->
-      (* entrée sans valeur explicite *)
+  | InputDecl (id, None) ->                              (* 4 *)
       Printf.fprintf oc "input %s;" id
-  | InstDecl (alias, gname, actuals) ->
-     Printf.fprintf oc "%s = %s(%s);" alias gname (String.concat ", " actuals)
   | InputDecl (id, Some v) ->
-      (* entrée avec valeur true / false *)
-      Printf.fprintf oc "input %s = %s;" id (if v then "true" else "false")
+      Printf.fprintf oc "input %s = %s;" id (str_of_sig v)
+
+  | InstDecl (alias, gname, actuals) ->
+      Printf.fprintf oc "%s = %s(%s);" alias gname (String.concat ", " actuals)
   | GateDecl (name, ins, outs, stmts) ->
       Printf.fprintf oc "gate %s(%s)(%s) {\n" name
         (String.concat ", " ins)
