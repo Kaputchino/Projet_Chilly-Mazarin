@@ -5,10 +5,12 @@ pcflex.cmo : \
 pcflex.cmx : \
     pcfparse.cmx
 pcfloop.cmo : \
+    pcfsem.cmo \
     pcfparse.cmi \
     pcflex.cmo \
     pcfast.cmo
 pcfloop.cmx : \
+    pcfsem.cmx \
     pcfparse.cmx \
     pcflex.cmx \
     pcfast.cmx

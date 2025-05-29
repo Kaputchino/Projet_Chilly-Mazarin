@@ -34,7 +34,13 @@ let find tbl name kind =
     error (Printf.sprintf "⟨%s⟩ \"%s\" introuvable" kind name)
 
 
-
+let write_csv path header row =
+  let oc = open_out path in          (* crée ou vide le fichier *)
+  output_string oc (String.concat "," header);
+  output_char   oc '\n';
+  output_string oc row;
+  output_char   oc '\n';
+  close_out oc
 
 let rec exec_gate ctx gate_name =
   (* récupère la définition *)
@@ -86,18 +92,27 @@ and eval_expr ctx expr =
       get_var full
 (* ────────────────────────────────────────────── *)
 let exec_instance ctx inst =
-  (* lier paramètres formels -> signaux réels *)
-  List.iter2 (fun formal actual ->
-    let v = find ctx.signals actual "signal" in
-    Hashtbl.replace ctx.signals formal v
-  ) inst.gdef.inputs inst.actuals;
-  exec_gate ctx inst.gdef.name;
-  (* recopier les sorties sous le préfixe alias *)
-  List.iter (fun o ->
-    let v = Hashtbl.find ctx.signals (inst.gdef.name ^ "." ^ o) in
-    Hashtbl.replace ctx.signals (inst.alias ^ "." ^ o) v
-  ) inst.gdef.outputs
+  (* 1. lier paramètres formels -> signaux réels *)
+  List.iter2
+    (fun formal actual ->
+       let v = find ctx.signals actual "signal" in
+       Hashtbl.replace ctx.signals formal v)
+    inst.gdef.inputs inst.actuals;
 
+  (* 2. exécuter la gate *)
+  exec_gate ctx inst.gdef.name;
+
+  (* 3. recopier tout ce qui commence par "gate." sous "alias." *)
+  let pref_in  = inst.gdef.name ^ "." in      (* ex. "fulladder." *)
+  let len_in   = String.length pref_in in
+  let pref_out = inst.alias ^ "." in          (* ex. "fa."        *)
+  Hashtbl.iter
+    (fun k v ->
+       if String.length k >= len_in &&
+          String.sub k 0 len_in = pref_in then
+         let suffix = String.sub k len_in (String.length k - len_in) in
+         Hashtbl.replace ctx.signals (pref_out ^ suffix) v)
+    ctx.signals
 
 
 
@@ -109,52 +124,85 @@ let read_header_if_exists path =
     String.split_on_char ',' line
   else []
 
-let ensure_columns ctx targets header =
-  let cols = ref header in
-  let add_col c = if not (List.mem c !cols) then cols := !cols @ [c] in
-  List.iter (function
-    | TGate id ->
-        (* exécute d’abord  (instance ou gate) *)
-        if Hashtbl.mem ctx.instances id then
-          exec_instance ctx (Hashtbl.find ctx.instances id)
-        else if Hashtbl.mem ctx.gates id then
-          exec_gate ctx id;
+let ensure_columns ctx targets header0 =
+  let cols = ref header0 in
+  let add_col c =
+    if not (List.mem c !cols) then cols := !cols @ [c]
+  in
 
-        (* ajoute toutes ses sorties (alias.prefix) *)
-        let add_outputs alias gdef =
-          List.iter (fun o -> add_col (alias ^ "." ^ o)) gdef.outputs
-        in
-        if Hashtbl.mem ctx.instances id then
-          let inst = Hashtbl.find ctx.instances id in
-          add_outputs inst.alias inst.gdef
-        else if Hashtbl.mem ctx.gates id then
-          let gdef = Hashtbl.find ctx.gates id in
-          add_outputs id gdef;
+  (* toujours commencer par les inputs globaux *)
+  Hashtbl.iter (fun k _ -> add_col k) ctx.inputs;
 
-        (* puis ajoute éventuels internes déjà présents *)
-        let prefix = id ^ "." in
-        Hashtbl.iter
-          (fun k _ -> if String.length k >= String.length prefix
-                      && String.sub k 0 (String.length prefix) = prefix
-                      then add_col k)
-          ctx.signals
+  let add_outputs alias gdef =
+    List.iter (fun o -> add_col (alias ^ "." ^ o)) gdef.outputs
+  in
 
-    | TSignal (id, opt) ->
-      let col = match opt with None -> id | Some f -> id ^ "." ^ f in
-      add_col col
+  List.iter
+    (function
+      (* ----------- cibles gate / instance ----------- *)
+      | TGate id ->
+          if Hashtbl.mem ctx.instances id then
+            exec_instance ctx (Hashtbl.find ctx.instances id)
+          else if Hashtbl.mem ctx.gates id then
+            exec_gate ctx id;
 
-  ) targets;
-  !cols
-let row_of_columns ctx cols =
-  cols
-  |> List.map (fun c ->
-        if Hashtbl.find ctx.signals c then "TRUE" else "FALSE")
-  |> String.concat ","
+          (* sorties officielles *)
+          (match Hashtbl.find_opt ctx.instances id with
+           | Some inst -> add_outputs inst.alias inst.gdef
+           | None ->
+               match Hashtbl.find_opt ctx.gates id with
+               | Some gdef -> add_outputs id gdef
+               | None -> ());
 
-let write_csv path header row =
-  let oc = open_out path in
-  output_string oc (String.concat "," header ^ "\n" ^ row ^ "\n");
-  close_out oc
+          (* internes déjà présents sous alias.* *)
+          let prefix = id ^ "." in
+          Hashtbl.iter
+            (fun k _ ->
+               if String.length k >= String.length prefix &&
+                  String.sub k 0 (String.length prefix) = prefix
+               then add_col k)
+            ctx.signals
+
+      (* ----------- cibles signal -------------------- *)
+      | TSignal (id, Some sub) ->
+          add_col (id ^ "." ^ sub)
+
+      | TSignal (id, None) ->
+          if Hashtbl.mem ctx.instances id || Hashtbl.mem ctx.gates id then begin
+            (* 1. calculer l’instance ou la gate *)
+            if Hashtbl.mem ctx.instances id then
+              exec_instance ctx (Hashtbl.find ctx.instances id)
+            else
+              exec_gate ctx id;
+
+            (* 2. ajouter toutes ses sorties *)
+            (match Hashtbl.find_opt ctx.instances id with
+             | Some inst ->
+                 List.iter (fun o -> add_col (inst.alias ^ "." ^ o))
+                           inst.gdef.outputs
+             | None ->
+                 match Hashtbl.find_opt ctx.gates id with
+                 | Some gdef ->
+                     List.iter (fun o -> add_col (id ^ "." ^ o))
+                               gdef.outputs
+                 | None -> ());
+
+            (* 3. ajouter ses internes déjà présents *)
+            let prefix = id ^ "." in
+            Hashtbl.iter
+              (fun k _ ->
+                 if String.length k >= String.length prefix &&
+                    String.sub k 0 (String.length prefix) = prefix
+                 then add_col k)
+              ctx.signals
+          end
+          else
+            add_col id
+    )
+    targets;              
+  !cols                    
+
+
 
 
       (* ──────────── définition mutuelle ──────────── *)
@@ -210,31 +258,62 @@ let run_program prog =
         in
         Printf.printf "%s %s = %b\n" msg full value
     | WriteStmt (path, targets) ->
-        (* 1 : exécuter chaque cible gate/instance pour remplir ctx.signals *)
+        (* 1.  Exécuter chaque cible pour remplir ctx.signals -------------- *)
         List.iter (function
           | TGate id when Hashtbl.mem ctx.gates id ->
               exec_gate ctx id
           | TGate id when Hashtbl.mem ctx.instances id ->
               exec_instance ctx (Hashtbl.find ctx.instances id)
-          | TSignal (id,_) when Hashtbl.mem ctx.gates id ->
+          | TSignal (id, _) when Hashtbl.mem ctx.gates id ->
               exec_gate ctx id
-          | TSignal (id,_) when Hashtbl.mem ctx.instances id ->
+          | TSignal (id, _) when Hashtbl.mem ctx.instances id ->
               exec_instance ctx (Hashtbl.find ctx.instances id)
-          | _ -> ()
-        ) targets;
+          | _ -> ())
+          targets;
 
-        (* 2 : entête existant *)
+        (* 2.  Entête existant (si le fichier existe déjà) ----------------- *)
         let header0 = read_header_if_exists path in
 
-        (* 3 : nouvelles colonnes complètes *)
+        (* 3.  Entête enrichi avec les nouvelles colonnes ------------------ *)
         let header  = ensure_columns ctx targets header0 in
 
-        (* 4 : ligne de valeurs *)
-        let row     = row_of_columns ctx header in
+        (* 3 bis. Retirer alias nus ET marqueurs "alias." ----------------------- *)
+        let header =
+          List.filter
+            (fun col ->
+              col <> "" &&                        (* pas de chaîne vide      *)
+              not (List.exists (function
+                      | TSignal (id, None) ->
+                            col = id        ||     (* alias nu   "fa"        *)
+                            col = id ^ "."         (* alias point "fa."      *)
+                      | _ -> false)
+                    targets))
+            header
+        in
 
-        (* 5 : écriture/écrasement *)
+        (**
+        let header =
+          List.filter (fun col -> col <> "") header
+        in*)
+
+
+        (* 4.  Ligne de valeurs ------------------------------------------- *)
+        let row =
+          header
+          |> List.map (fun k ->
+              if Hashtbl.mem ctx.signals k then
+                if Hashtbl.find ctx.signals k then "TRUE" else "FALSE"
+              else
+                error (Printf.sprintf
+                          "write: signal \"%s\" absent du contexte" k))
+          |> String.concat ","
+        in
+
+        (* 5.  Écriture / écrasement -------------------------------------- *)
         write_csv path header row;
         Printf.printf "→ CSV mis à jour : %s\n" path
+
+
     | _ -> ()
   ) prog;
 
