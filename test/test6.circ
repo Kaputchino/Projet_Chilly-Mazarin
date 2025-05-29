@@ -1,0 +1,34 @@
+/* -------------------------------------------------
+   Fichier : test_undet.circ
+   Objectif : vérifier la propagation de UNDET
+-------------------------------------------------- */
+
+input a;           // indéterminé  (varie TRUE / FALSE)
+input b = false;   // fixé         (FALSE)
+input cin = true;  // fixé         (TRUE)
+
+/* ---------- définition des portes --------------- */
+gate halfadder(x, y)(sum, carry) {
+  sum   = x + y - (x - y);   // XOR
+  carry = x - y;             // AND
+}
+
+gate fulladder(x, y, c)(sum, carry) {
+  s2    = (halfadder.sum + c) - (halfadder.sum - c);
+  c2    = halfadder.sum - c;
+  sum   = s2;
+  carry = halfadder.carry + c2;
+}
+
+/* ---------- instanciations ---------------------- */
+ha = halfadder(a, b);
+fa = fulladder(a, b, cin);
+
+/* ---------- affichages -------------------------- */
+print("Somme demi-add :", ha.sum);
+print("Retenue demi-add :", ha.carry);
+print("Somme finale :", fa.sum);
+print("Retenue finale :", fa.carry);
+
+/* ---------- CSV avec toutes les combinaisons ---- */
+write("table.csv", a, ha.sum, ha.carry, fa.sum, fa.carry);

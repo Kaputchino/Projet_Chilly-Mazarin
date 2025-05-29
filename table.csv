@@ -1,0 +1,3 @@
+a,b,cin,ha.sum,ha.carry,fa.sum,fa.carry
+true,false,true,true,false,true,true
+false,false,true,false,false,false,false

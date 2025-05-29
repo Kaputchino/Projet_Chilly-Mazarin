@@ -1,6 +1,5 @@
 open Pcfast
 
-type signal = TTrue | TFalse | TUndet
 
 type context = {
   inputs : (string, signal) Hashtbl.t;
@@ -20,6 +19,38 @@ and instance = {
   gdef    : gatedef;
   actuals : string list;
 }
+
+(* ────────── exploration des scénarios UNDET ────────── *)
+
+let clone_ctx ctx =
+  { ctx with
+      inputs  = Hashtbl.copy ctx.inputs;
+      signals = Hashtbl.copy ctx.signals }
+
+let undet_inputs ctx =
+  Hashtbl.fold
+    (fun k v acc -> if v = TUndet then k :: acc else acc)
+    ctx.inputs []
+
+let rec explore ctx vars k =
+  match vars with
+  | [] -> k ctx
+  | s :: tl ->
+      let ctx_t = clone_ctx ctx in
+      let ctx_f = clone_ctx ctx in
+      Hashtbl.replace ctx_t.inputs  s TTrue;
+      Hashtbl.replace ctx_t.signals s TTrue;
+      Hashtbl.replace ctx_f.inputs  s TFalse;
+      Hashtbl.replace ctx_f.signals s TFalse;
+      explore ctx_t tl k;
+      explore ctx_f tl k
+
+let with_all_scenarios ctx action =
+  let vars = undet_inputs ctx in
+  if vars = [] then action ctx
+  else explore ctx vars action
+
+
 
 let error msg = raise (Failure msg)
 
@@ -266,71 +297,64 @@ let run_program prog =
 
   (* Exécution des print avec calcul si besoin *)
   List.iter (function
-    | PrintStmt (msg, id, None) when Hashtbl.mem ctx.inputs id ->
-        let v = Hashtbl.find ctx.inputs id in
-         Printf.printf "%s %s = %s\n" msg id (str_of_sig v)
     | PrintStmt (msg, id, opt) ->
-        let full =
-          match opt with
-          | None -> id
-          | Some sub ->
-              let gate = id in
-              if Hashtbl.mem ctx.gates gate then exec_gate ctx gate;
-              gate ^ "." ^ sub
+        let single ctx_det =
+          let full =
+            match opt with
+            | None -> id
+            | Some sub ->
+                if Hashtbl.mem ctx_det.gates id then exec_gate ctx_det id;
+                id ^ "." ^ sub
+          in
+          let value = find ctx_det.signals full "print" in
+          Printf.printf "%s %s = %s\n" msg full (str_of_sig value)
         in
-        let value = find ctx.signals full "print"
-        in
-        Printf.printf "%s %s = %s\n" msg full (str_of_sig value)
+        with_all_scenarios ctx single
     | WriteStmt (path, targets) ->
-        (* 1.  Exécuter chaque cible pour remplir ctx.signals -------------- *)
-        List.iter (function
-          | TGate id when Hashtbl.mem ctx.gates id ->
-              exec_gate ctx id
-          | TGate id when Hashtbl.mem ctx.instances id ->
-              exec_instance ctx (Hashtbl.find ctx.instances id)
-          | TSignal (id, _) when Hashtbl.mem ctx.gates id ->
-              exec_gate ctx id
-          | TSignal (id, _) when Hashtbl.mem ctx.instances id ->
-              exec_instance ctx (Hashtbl.find ctx.instances id)
-          | _ -> ())
-          targets;
+        let rows  = ref [] in
+        let heads = ref None in
 
-        (* 2.  Entête existant (si le fichier existe déjà) ----------------- *)
-        let header0 = read_header_if_exists path in
+        let single ctx_det =
+          (* exécuter toutes les cibles pour remplir ctx_det.signals *)
+          List.iter (function
+            | TGate id when Hashtbl.mem ctx_det.gates id ->
+                exec_gate ctx_det id
+            | TGate id when Hashtbl.mem ctx_det.instances id ->
+                exec_instance ctx_det (Hashtbl.find ctx_det.instances id)
+            | TSignal (id,_) when Hashtbl.mem ctx_det.gates id ->
+                exec_gate ctx_det id
+            | TSignal (id,_) when Hashtbl.mem ctx_det.instances id ->
+                exec_instance ctx_det (Hashtbl.find ctx_det.instances id)
+            | _ -> ()) targets;
 
-        (* 3.  Entête enrichi avec les nouvelles colonnes ------------------ *)
-        let header  = ensure_columns ctx targets header0 in
+          (* construire l’en-tête complet *)
+          let header  = ensure_columns ctx_det targets [] in
+          let header  =
+            List.filter (fun c -> c <> "" && not (String.ends_with c ".")) header
+          in
 
-        (* 3 bis. Retirer alias nus ET marqueurs "alias." ----------------------- *)
-        let header =
-          List.filter
-            (fun col ->
-              col <> "" &&                        (* pas de chaîne vide      *)
-              not (List.exists (function
-                      | TSignal (id, None) ->
-                            col = id        ||     (* alias nu   "fa"        *)
-                            col = id ^ "."         (* alias point "fa."      *)
-                      | _ -> false)
-                    targets))
+          (match !heads with None -> heads := Some header | _ -> ());
+
+          (* ligne de valeurs *)
+          let row =
             header
+            |> List.map (fun k -> str_of_sig (Hashtbl.find ctx_det.signals k))
+            |> String.concat ","
+          in
+          rows := row :: !rows
         in
+        with_all_scenarios ctx single;
 
-        (**
-        let header =
-          List.filter (fun col -> col <> "") header
-        in*)
-
-
-        (* 4.  Ligne de valeurs ------------------------------------------- *)
-        let row =
-          header |> List.map (fun k -> str_of_sig (Hashtbl.find ctx.signals k))
-                |> String.concat ","
-
-        in
-
-        (* 5.  Écriture / écrasement -------------------------------------- *)
-        write_csv path header row;
-        Printf.printf "→ CSV mis à jour : %s\n" path
+        (* écriture finale du CSV *)
+        (match !heads with
+        | None -> ()
+        | Some header ->
+            let oc = open_out path in
+            output_string oc (String.concat "," header ^ "\n");
+            List.iter (fun r -> output_string oc (r ^ "\n")) (List.rev !rows);
+            close_out oc;
+            Printf.printf "→ CSV mis à jour : %s (%d scénarios)\n"
+                          path (List.length !rows))
 
 
     | _ -> ()

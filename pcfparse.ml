@@ -57,32 +57,32 @@ let yylhs = "\255\255\
 \001\000\002\000\002\000\004\000\006\000\006\000\005\000\005\000\
 \007\000\007\000\003\000\003\000\003\000\003\000\003\000\003\000\
 \008\000\012\000\012\000\009\000\009\000\013\000\014\000\014\000\
-\014\000\014\000\014\000\014\000\014\000\010\000\010\000\007\000\
-\007\000\011\000\015\000\015\000\000\000"
+\014\000\014\000\014\000\014\000\014\000\011\000\011\000\010\000\
+\015\000\015\000\000\000"
 
 let yylen = "\002\000\
 \002\000\002\000\000\000\002\000\002\000\000\000\003\000\001\000\
-\001\000\001\000\005\000\003\000\011\000\008\000\007\000\007\000\
+\001\000\001\000\005\000\003\000\011\000\007\000\008\000\007\000\
 \002\000\002\000\000\000\002\000\000\000\004\000\003\000\002\000\
-\002\000\003\000\003\000\001\000\001\000\002\000\000\000\001\000\
-\001\000\002\000\002\000\000\000\002\000"
+\002\000\003\000\003\000\001\000\001\000\002\000\000\000\002\000\
+\002\000\000\000\002\000"
 
 let yydefred = "\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\037\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\035\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\001\000\
 \002\000\000\000\012\000\000\000\000\000\000\000\000\000\009\000\
 \010\000\000\000\000\000\000\000\000\000\000\000\000\000\011\000\
 \000\000\017\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\018\000\000\000\000\000\000\000\000\000\034\000\000\000\
-\000\000\000\000\000\000\004\000\000\000\030\000\000\000\035\000\
-\015\000\007\000\016\000\005\000\000\000\014\000\000\000\000\000\
+\000\000\018\000\000\000\000\000\000\000\000\000\032\000\000\000\
+\000\000\000\000\000\000\004\000\000\000\030\000\000\000\033\000\
+\014\000\007\000\016\000\005\000\000\000\015\000\000\000\000\000\
 \000\000\000\000\000\000\013\000\020\000\028\000\029\000\000\000\
 \000\000\000\000\000\000\000\000\025\000\000\000\000\000\000\000\
 \022\000\023\000\000\000\000\000"
 
 let yydgoto = "\002\000\
 \008\000\009\000\010\000\040\000\041\000\052\000\026\000\028\000\
-\065\000\045\000\038\000\034\000\066\000\075\000\047\000"
+\065\000\038\000\045\000\034\000\066\000\075\000\047\000"
 
 let yysindex = "\011\000\
 \255\254\000\000\013\255\029\255\014\255\032\255\031\255\000\000\
@@ -112,7 +112,7 @@ let yyrindex = "\000\000\
 
 let yygindex = "\000\000\
 \000\000\050\000\000\000\022\000\000\000\000\000\000\000\230\255\
-\013\000\009\000\042\000\000\000\000\000\207\255\000\000"
+\013\000\036\000\015\000\000\000\000\000\207\255\000\000"
 
 let yytablesize = 90
 let yytable = "\003\000\
@@ -126,7 +126,7 @@ let yytable = "\003\000\
 \037\000\033\000\039\000\017\000\035\000\032\000\043\000\044\000\
 \046\000\048\000\049\000\051\000\050\000\054\000\058\000\055\000\
 \060\000\064\000\061\000\057\000\059\000\067\000\069\000\063\000\
-\062\000\077\000\019\000\068\000\031\000\036\000\006\000\056\000\
+\062\000\056\000\019\000\068\000\031\000\034\000\006\000\077\000\
 \000\000\021\000"
 
 let yycheck = "\001\001\
@@ -140,7 +140,7 @@ let yycheck = "\001\001\
 \009\001\013\001\009\001\010\000\015\001\018\001\014\001\011\001\
 \013\001\015\001\011\001\013\001\015\001\009\001\009\001\015\001\
 \051\000\009\001\015\001\018\001\018\001\012\001\066\000\016\001\
-\018\001\073\000\015\001\017\001\015\001\015\001\015\001\046\000\
+\018\001\046\000\015\001\017\001\015\001\015\001\015\001\073\000\
 \255\255\017\001"
 
 let yynames_const = "\
@@ -175,7 +175,7 @@ let yyact = [|
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'decls) in
     Obj.repr(
-# 19 "pcfparse.mly"
+# 18 "pcfparse.mly"
               ( _1 )
 # 181 "pcfparse.ml"
                : Pcfast.program))
@@ -183,13 +183,13 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'decl) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'decls) in
     Obj.repr(
-# 22 "pcfparse.mly"
+# 21 "pcfparse.mly"
                ( _1 :: _2 )
 # 189 "pcfparse.ml"
                : 'decls))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 23 "pcfparse.mly"
+# 22 "pcfparse.mly"
                 ( [] )
 # 195 "pcfparse.ml"
                : 'decls))
@@ -197,20 +197,20 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'wtarget) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'more_wtargets) in
     Obj.repr(
-# 27 "pcfparse.mly"
+# 26 "pcfparse.mly"
                           ( _1 :: _2 )
 # 203 "pcfparse.ml"
                : 'wtargets))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'wtargets) in
     Obj.repr(
-# 29 "pcfparse.mly"
+# 28 "pcfparse.mly"
                    ( _2 )
 # 210 "pcfparse.ml"
                : 'more_wtargets))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 30 "pcfparse.mly"
+# 29 "pcfparse.mly"
                    ( [] )
 # 216 "pcfparse.ml"
                : 'more_wtargets))
@@ -218,26 +218,26 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 34 "pcfparse.mly"
+# 32 "pcfparse.mly"
                     ( TSignal(_1, Some _3) )
 # 224 "pcfparse.ml"
                : 'wtarget))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 35 "pcfparse.mly"
+# 33 "pcfparse.mly"
                     ( TSignal(_1, None) )
 # 231 "pcfparse.ml"
                : 'wtarget))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 38 "pcfparse.mly"
+# 37 "pcfparse.mly"
           ( TTrue )
 # 237 "pcfparse.ml"
                : 'boolval))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 39 "pcfparse.mly"
+# 38 "pcfparse.mly"
           ( TFalse )
 # 243 "pcfparse.ml"
                : 'boolval))
@@ -252,7 +252,7 @@ let yyact = [|
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : string) in
     Obj.repr(
-# 46 "pcfparse.mly"
+# 45 "pcfparse.mly"
       ( InputDecl(_2, None) )
 # 258 "pcfparse.ml"
                : 'decl))
@@ -262,33 +262,33 @@ let yyact = [|
     let _7 = (Parsing.peek_val __caml_parser_env 4 : 'params) in
     let _10 = (Parsing.peek_val __caml_parser_env 1 : 'stmts) in
     Obj.repr(
-# 49 "pcfparse.mly"
+# 48 "pcfparse.mly"
       ( GateDecl(_2, _4, _7, _10) )
 # 268 "pcfparse.ml"
-               : 'decl))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
-    let _5 = (Parsing.peek_val __caml_parser_env 3 : string) in
-    let _6 = (Parsing.peek_val __caml_parser_env 2 : 'idnext) in
-    Obj.repr(
-# 52 "pcfparse.mly"
-      ( PrintStmt(_3, _5, _6) )
-# 277 "pcfparse.ml"
                : 'decl))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 6 : string) in
     let _3 = (Parsing.peek_val __caml_parser_env 4 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 2 : 'args) in
     Obj.repr(
-# 54 "pcfparse.mly"
+# 51 "pcfparse.mly"
       ( InstDecl(_1, _3, _5) )
+# 277 "pcfparse.ml"
+               : 'decl))
+; (fun __caml_parser_env ->
+    let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
+    let _5 = (Parsing.peek_val __caml_parser_env 3 : string) in
+    let _6 = (Parsing.peek_val __caml_parser_env 2 : 'idnext) in
+    Obj.repr(
+# 54 "pcfparse.mly"
+      ( PrintStmt(_3, _5, _6) )
 # 286 "pcfparse.ml"
                : 'decl))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 4 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 2 : 'wtargets) in
     Obj.repr(
-# 56 "pcfparse.mly"
+# 57 "pcfparse.mly"
       ( WriteStmt(_3, _5) )
 # 294 "pcfparse.ml"
                : 'decl))
@@ -296,20 +296,20 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'more_params) in
     Obj.repr(
-# 60 "pcfparse.mly"
+# 61 "pcfparse.mly"
                       ( _1 :: _2 )
 # 302 "pcfparse.ml"
                : 'params))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'params) in
     Obj.repr(
-# 62 "pcfparse.mly"
+# 63 "pcfparse.mly"
                  ( _2 )
 # 309 "pcfparse.ml"
                : 'more_params))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 63 "pcfparse.mly"
+# 64 "pcfparse.mly"
                 ( [] )
 # 315 "pcfparse.ml"
                : 'more_params))
@@ -317,13 +317,13 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'stmt) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'stmts) in
     Obj.repr(
-# 66 "pcfparse.mly"
+# 68 "pcfparse.mly"
                ( _1 :: _2 )
 # 323 "pcfparse.ml"
                : 'stmts))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 67 "pcfparse.mly"
+# 69 "pcfparse.mly"
                 ( [] )
 # 329 "pcfparse.ml"
                : 'stmts))
@@ -331,21 +331,21 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 71 "pcfparse.mly"
-      ( Assign(_1, _3) )
+# 72 "pcfparse.mly"
+                               ( Assign(_1, _3) )
 # 337 "pcfparse.ml"
                : 'stmt))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 74 "pcfparse.mly"
+# 76 "pcfparse.mly"
                            ( Parens(_2) )
 # 344 "pcfparse.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 75 "pcfparse.mly"
+# 77 "pcfparse.mly"
                            ( Not(_2) )
 # 351 "pcfparse.ml"
                : 'expr))
@@ -353,7 +353,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'idnext) in
     Obj.repr(
-# 76 "pcfparse.mly"
+# 78 "pcfparse.mly"
                            ( Var(_1, _2) )
 # 359 "pcfparse.ml"
                : 'expr))
@@ -361,7 +361,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 77 "pcfparse.mly"
+# 79 "pcfparse.mly"
                            ( And(_1, _3) )
 # 367 "pcfparse.ml"
                : 'expr))
@@ -369,67 +369,55 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 78 "pcfparse.mly"
+# 80 "pcfparse.mly"
                            ( Or(_1, _3) )
 # 375 "pcfparse.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 79 "pcfparse.mly"
+# 81 "pcfparse.mly"
                            ( True )
 # 381 "pcfparse.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 80 "pcfparse.mly"
+# 82 "pcfparse.mly"
                            ( False )
 # 387 "pcfparse.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 83 "pcfparse.mly"
-                           ( Some(_2) )
+# 85 "pcfparse.mly"
+              ( Some(_2) )
 # 394 "pcfparse.ml"
                : 'idnext))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 84 "pcfparse.mly"
-                           ( None )
+# 86 "pcfparse.mly"
+                ( None )
 # 400 "pcfparse.ml"
                : 'idnext))
-; (fun __caml_parser_env ->
-    Obj.repr(
-# 87 "pcfparse.mly"
-          ( true )
-# 406 "pcfparse.ml"
-               : 'boolval))
-; (fun __caml_parser_env ->
-    Obj.repr(
-# 88 "pcfparse.mly"
-          ( false )
-# 412 "pcfparse.ml"
-               : 'boolval))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'more_args) in
     Obj.repr(
 # 90 "pcfparse.mly"
                     ( _1 :: _2 )
-# 420 "pcfparse.ml"
+# 408 "pcfparse.ml"
                : 'args))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'args) in
     Obj.repr(
 # 92 "pcfparse.mly"
                ( _2 )
-# 427 "pcfparse.ml"
+# 415 "pcfparse.ml"
                : 'more_args))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 93 "pcfparse.mly"
                 ( [] )
-# 433 "pcfparse.ml"
+# 421 "pcfparse.ml"
                : 'more_args))
 (* Entry main *)
 ; (fun __caml_parser_env -> raise (Parsing.YYexit (Parsing.peek_val __caml_parser_env 0)))
