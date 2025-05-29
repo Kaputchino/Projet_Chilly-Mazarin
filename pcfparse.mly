@@ -34,7 +34,10 @@ wtarget:
   | IDENT DOT IDENT { TSignal($1, Some $3) }
   | IDENT           { TSignal($1, None) }
 
-
+boolval:
+  | TRUE  { TTrue }
+  | FALSE { TFalse }
+  
 decl:
   | INPUT IDENT EQUAL boolval SEMICOLON
       { InputDecl($2, Some $4) }

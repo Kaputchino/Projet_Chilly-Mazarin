@@ -1,6 +1,7 @@
 open Pcfast
 
-type signal = bool 
+type signal = TTrue | TFalse | TUndet
+
 type context = {
   inputs : (string, signal) Hashtbl.t;
   signals : (string, signal) Hashtbl.t;
@@ -22,7 +23,10 @@ and instance = {
 
 let error msg = raise (Failure msg)
 
-let string_of_bool = function true -> "true" | false -> "false"
+let str_of_sig = function  
+  | TTrue  -> "true"  
+  | TFalse -> "false"  
+  | TUndet -> "undet"  
 
 let keys tbl =
   Hashtbl.fold (fun k _ acc -> k :: acc) tbl []
@@ -32,6 +36,22 @@ let find tbl name kind =
   try Hashtbl.find tbl name
   with Not_found ->
     error (Printf.sprintf "⟨%s⟩ \"%s\" introuvable" kind name)
+
+let not_sig = function
+  | TTrue  -> TFalse
+  | TFalse -> TTrue
+  | TUndet -> TUndet
+
+let and_sig a b = match a, b with
+  | TFalse, _ | _, TFalse -> TFalse
+  | TTrue , TTrue         -> TTrue
+  | _      , _            -> TUndet
+
+let or_sig a b = match a, b with
+  | TTrue , _ | _, TTrue  -> TTrue
+  | TFalse, TFalse        -> TFalse
+  | _     , _             -> TUndet
+
 
 
 let write_csv path header row =
@@ -73,11 +93,11 @@ and eval_expr ctx expr =
     else error (Printf.sprintf "Nom \"%s\" non défini" name)
   in
   match expr with
-  | True  -> true
-  | False -> false
-  | Not e -> not (eval_expr ctx e)
-  | And (a,b) -> eval_expr ctx a && eval_expr ctx b
-  | Or  (a,b) -> eval_expr ctx a || eval_expr ctx b
+  | True  -> TTrue
+  | False -> TFalse
+  | Not e -> not_sig (eval_expr ctx e)
+  | And(a,b) -> and_sig (eval_expr ctx a) (eval_expr ctx b)
+  | Or (a,b) -> or_sig  (eval_expr ctx a) (eval_expr ctx b)
   | Parens e  -> eval_expr ctx e
   | Var (id,None) ->
       if Hashtbl.mem ctx.signals id then get_var id
@@ -219,7 +239,9 @@ let run_program prog =
   (* Déclaration des entrées et des gates *)
   List.iter (function
     | InputDecl (id, opt_val) ->
-        let value = match opt_val with Some v -> v | None -> false in
+        let value = match opt_val with
+            | Some v -> v          (* explicit TRUE / FALSE *)
+            | None   -> TUndet     (* input a;  → indéterminé *) in
         Hashtbl.add ctx.inputs id value;
         Hashtbl.add ctx.signals id value
     | GateDecl (name, ins, outs, body) ->
@@ -235,16 +257,18 @@ let run_program prog =
       Hashtbl.iter (fun _ inst -> exec_instance ctx inst) ctx.instances;
 
       (*auto print*)
+
   Hashtbl.iter
-    (fun id v -> Printf.printf "input %s = %b\n" id v)
+    (fun id v -> Printf.printf "input %s = %s\n" id (str_of_sig v))
     ctx.inputs;
+
 
 
   (* Exécution des print avec calcul si besoin *)
   List.iter (function
     | PrintStmt (msg, id, None) when Hashtbl.mem ctx.inputs id ->
         let v = Hashtbl.find ctx.inputs id in
-        Printf.printf "%s %s = %b\n" msg id v
+         Printf.printf "%s %s = %s\n" msg id (str_of_sig v)
     | PrintStmt (msg, id, opt) ->
         let full =
           match opt with
@@ -256,7 +280,7 @@ let run_program prog =
         in
         let value = find ctx.signals full "print"
         in
-        Printf.printf "%s %s = %b\n" msg full value
+        Printf.printf "%s %s = %s\n" msg full (str_of_sig value)
     | WriteStmt (path, targets) ->
         (* 1.  Exécuter chaque cible pour remplir ctx.signals -------------- *)
         List.iter (function
@@ -299,14 +323,9 @@ let run_program prog =
 
         (* 4.  Ligne de valeurs ------------------------------------------- *)
         let row =
-          header
-          |> List.map (fun k ->
-              if Hashtbl.mem ctx.signals k then
-                if Hashtbl.find ctx.signals k then "TRUE" else "FALSE"
-              else
-                error (Printf.sprintf
-                          "write: signal \"%s\" absent du contexte" k))
-          |> String.concat ","
+          header |> List.map (fun k -> str_of_sig (Hashtbl.find ctx.signals k))
+                |> String.concat ","
+
         in
 
         (* 5.  Écriture / écrasement -------------------------------------- *)
