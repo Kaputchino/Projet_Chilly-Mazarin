@@ -101,18 +101,19 @@ and eval_expr ctx expr =
   | Var (id,None) ->
       if Hashtbl.mem ctx.signals id then get_var id
       else if Hashtbl.mem ctx.gates id then (
-        exec_gate_by_name ctx id;
-                    (* calcule la gate si besoin *)
+        exec_gate_by_name ctx id;        (* ← ici ! *)
         get_var id )
       else error ("Signal non défini : " ^ id)
   | Var (id, Some sub) ->
       let full = id ^ "." ^ sub in
-      (* si alias est dans les instances locales on l’exécute si besoin *)
+      (* si alias référencé mais pas encore calculé → on exécute l’instance *)
       (match Hashtbl.find_opt ctx.instances id with
       | Some inst when not (Hashtbl.mem ctx.signals full) ->
           exec_instance ctx inst
       | _ -> ());
       find ctx.signals full "signal"
+
+      (*
   | App (gname, actuals) ->
     let gdef =
       try Hashtbl.find ctx.gates gname
@@ -123,28 +124,50 @@ and eval_expr ctx expr =
     (* exécution et récupération de la première sortie *)
     exec_gate ctx gdef actuals;
     let key = gname ^ "." ^ (List.hd gdef.outputs) in
-    find ctx.signals key "résultat d'appel"
+    find ctx.signals key "résultat d'appel"*)
 
 
 and eval_stmt ctx = function
   | Assign (id, e) ->
       let value = eval_expr ctx e in               (* ← v → value *)
       Hashtbl.replace ctx.signals id value
-  | InstAssign (alias, gname, actual_strings) ->
+  | InstAssign (alias, gname, args_expr) ->
+      (* 1. définition de la gate *)
       let gdef =
-        try Hashtbl.find ctx.gates gname
-        with Not_found -> error ("Gate "^gname^" inconnue") in
-      let actuals = List.map (fun id -> Var(id,None)) actual_strings in
-      (* enregistre l’instance *)
-      Hashtbl.replace ctx.instances alias { alias; gdef; actuals = actual_strings };
-      (* exécution immédiate *)
-      exec_gate ctx gdef actuals;                  (* ← exec_gate_by_name …  *)
-      (* recopie des sorties sous alias.* *)
+        match Hashtbl.find_opt ctx.gates gname with
+        | Some g -> g
+        | None   -> error ("Gate "^gname^" inconnue") in
+
+      (* 2. arité *)
+      if List.length args_expr <> List.length gdef.inputs then
+        error (Printf.sprintf "Arity mismatch : %s attend %d args"
+                gname (List.length gdef.inputs));
+
+      (* 3. extraire les identifiants simples pour l’enregistrement *)
+      let args_ids =
+        List.map
+          (function
+            | Var (id,None)     -> id
+            | Var (id,Some sub) -> id ^ "." ^ sub
+            | _ -> error "argument non atomique")
+          args_expr
+      in
+
+      (* 4. stocke l’instance *)
+      Hashtbl.replace ctx.instances alias
+        { alias; gdef; actuals = args_ids };
+
+      (* 5. exécute immédiatement la gate pour cette instance *)
+      exec_gate ctx gdef args_expr;
+
+      (* 6. recopie les sorties sous alias.* *)
       List.iter
         (fun o ->
-           let v = find ctx.signals (gdef.name ^ "." ^ o) "sortie" in
-           Hashtbl.replace ctx.signals (alias ^ "." ^ o) v)
+          let v = find ctx.signals (gdef.name ^ "." ^ o) "sortie" in
+          Hashtbl.replace ctx.signals (alias ^ "." ^ o) v)
         gdef.outputs
+
+
 
 
 (* ────────────────────────────────────────────── *)
@@ -281,12 +304,16 @@ let run_program prog =
         Hashtbl.add ctx.signals id value
     | GateDecl (name, ins, outs, body) ->
         Hashtbl.add ctx.gates name { name; inputs = ins; outputs = outs; body }
-    | InstDecl (alias, gname, actuals) ->
-      let gdef =
-        try Hashtbl.find ctx.gates gname
-        with Not_found -> error ("Gate "^gname^" inconnue")
-      in
-      Hashtbl.add ctx.instances alias { alias; gdef; actuals }
+    | InstDecl (alias, gname, actual_exprs) ->
+        let gdef =
+          try Hashtbl.find ctx.gates gname
+          with Not_found -> error ("Gate "^gname^" inconnue") in
+
+        let actual_ids = actual_exprs in
+
+        Hashtbl.add ctx.instances alias { alias; gdef; actuals = actual_ids };
+        exec_instance ctx (Hashtbl.find ctx.instances alias)
+
     | _ -> ()
   ) prog;
       Hashtbl.iter (fun _ inst -> exec_instance ctx inst) ctx.instances;

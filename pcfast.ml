@@ -8,8 +8,9 @@ type expr =
   | Parens of expr
 
 type stmt =
-  | Assign of string * expr
-  | InstAssign of string * string * string list
+  | Assign     of string * expr
+  | InstAssign of string * string * expr list  (* alias, gate, args *)
+  
 
 type target =
   | TGate   of string                   (* ha, fa … *)
@@ -29,6 +30,17 @@ type decl =
 
 type program = decl list
 
+let rec string_of_expr = function
+  | True               -> "true"
+  | False              -> "false"
+  | Not e              -> Printf.sprintf "(!%s)"   (string_of_expr e)
+  | And (e1,e2)        -> Printf.sprintf "(%s - %s)" (string_of_expr e1) (string_of_expr e2)
+  | Or  (e1,e2)        -> Printf.sprintf "(%s + %s)" (string_of_expr e1) (string_of_expr e2)
+  | Var (id,None)      -> id
+  | Var (id,Some sub)  -> Printf.sprintf "%s.%s" id sub
+  | Parens e           -> Printf.sprintf "(%s)"    (string_of_expr e)
+
+
 
 let rec print_expr oc = function
   | True -> output_string oc "true"
@@ -41,9 +53,12 @@ let rec print_expr oc = function
   | Parens e -> Printf.fprintf oc "(%a)" print_expr e
 
 let print_stmt oc = function
-  | Assign (v, e) -> Printf.fprintf oc "%s = %a;" v print_expr e
-  | InstAssign (alias,g,actuals) ->
-      Printf.fprintf oc "%s = %s(%s);" alias g (String.concat ", " actuals)
+  | Assign (v,e) ->
+      Printf.fprintf oc "%s = %a;" v print_expr e
+  | InstAssign (a, g, args) ->
+      Printf.fprintf oc "%s = %s(%s);" a g
+        (String.concat ", " (List.map string_of_expr args))
+
 
 let print_decl oc = function
   | InputDecl (id, None) ->
