@@ -4,6 +4,7 @@ type token =
   | PRINT
   | TRUE
   | FALSE
+  | WRITE
   | NOT
   | AND
   | OR
@@ -18,8 +19,6 @@ type token =
   | RBRACE
   | SEMICOLON
   | EOF
-  | WRITE
-  | FILL
 
 val main :
   (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Pcfast.program

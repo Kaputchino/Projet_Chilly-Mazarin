@@ -4,20 +4,21 @@ input cin = false;
 input sel;
 
 gate halfadder(x, y)(sum, carry) {
-  sum   = x + y - (x - y);
+  sum   = (x - (!y)) + ((!x) - y);
   carry = x - y;
 }
 
 gate mux2(a0, a1, s)(out) {
-  out = (s - a1) + ((!s) - a0);
+  out = (( !s ) - a0) + (s - a1);
 }
 
 gate fulladder(x, y, c)(sum, carry) {
-  ha1 = halfadder(x, y);
-  t   = ha1.sum;
-  ha2 = halfadder(t, c);
-  sum   = ha2.sum;
-  carry = ha1.carry + ha2.carry;
+  t1_sum   = (x - (!y)) + ((!x) - y);
+  t1_carry = x - y;
+  t2_sum   = (t1_sum - (!c)) + ((!t1_sum) - c);
+  t2_carry = t1_sum - c;
+  sum   = t2_sum;
+  carry = t1_carry + t2_carry;
 }
 
 ha   = halfadder(a, b);
@@ -35,4 +36,4 @@ print("fa.carry:", fa.carry);
 print("mux:", selM.out);
 
 write("all_signals.csv",
-      a, b, cin, sel, ha, fa, selM.out);
+      a, b, cin, sel, ha.sum, ha.carry, fa.sum, fa.carry, selM.out);

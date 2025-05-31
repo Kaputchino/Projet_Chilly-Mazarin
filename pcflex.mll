@@ -86,7 +86,6 @@ rule lex = parse
         | "true" -> TRUE
         | "false" -> FALSE
         | "write" -> WRITE
-        | "fill" -> FILL
         | _ -> IDENT(lxm) }
   | "."          { DOT }
   | "="          { EQUAL }

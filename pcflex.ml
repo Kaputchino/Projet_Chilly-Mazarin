@@ -222,122 +222,121 @@ let
         | "true" -> TRUE
         | "false" -> FALSE
         | "write" -> WRITE
-        | "fill" -> FILL
         | _ -> IDENT(lxm) )
-# 228 "pcflex.ml"
+# 227 "pcflex.ml"
 
   | 3 ->
-# 91 "pcflex.mll"
+# 90 "pcflex.mll"
                  ( DOT )
-# 233 "pcflex.ml"
+# 232 "pcflex.ml"
 
   | 4 ->
-# 92 "pcflex.mll"
+# 91 "pcflex.mll"
                  ( EQUAL )
-# 238 "pcflex.ml"
+# 237 "pcflex.ml"
 
   | 5 ->
-# 93 "pcflex.mll"
+# 92 "pcflex.mll"
                  ( COMMA )
-# 243 "pcflex.ml"
+# 242 "pcflex.ml"
 
   | 6 ->
-# 94 "pcflex.mll"
+# 93 "pcflex.mll"
                  ( LPAREN )
-# 248 "pcflex.ml"
+# 247 "pcflex.ml"
 
   | 7 ->
-# 95 "pcflex.mll"
+# 94 "pcflex.mll"
                  ( RPAREN )
-# 253 "pcflex.ml"
+# 252 "pcflex.ml"
 
   | 8 ->
-# 96 "pcflex.mll"
+# 95 "pcflex.mll"
                  ( LBRACE )
-# 258 "pcflex.ml"
+# 257 "pcflex.ml"
 
   | 9 ->
-# 97 "pcflex.mll"
+# 96 "pcflex.mll"
                  ( RBRACE )
-# 263 "pcflex.ml"
+# 262 "pcflex.ml"
 
   | 10 ->
-# 98 "pcflex.mll"
+# 97 "pcflex.mll"
                  ( SEMICOLON )
-# 268 "pcflex.ml"
+# 267 "pcflex.ml"
 
   | 11 ->
-# 99 "pcflex.mll"
+# 98 "pcflex.mll"
                  ( OR )
-# 273 "pcflex.ml"
+# 272 "pcflex.ml"
 
   | 12 ->
-# 100 "pcflex.mll"
+# 99 "pcflex.mll"
                  ( OR )
-# 278 "pcflex.ml"
+# 277 "pcflex.ml"
 
   | 13 ->
-# 101 "pcflex.mll"
+# 100 "pcflex.mll"
                  ( AND )
-# 283 "pcflex.ml"
+# 282 "pcflex.ml"
 
   | 14 ->
-# 102 "pcflex.mll"
+# 101 "pcflex.mll"
                  ( AND )
-# 288 "pcflex.ml"
+# 287 "pcflex.ml"
 
   | 15 ->
-# 103 "pcflex.mll"
+# 102 "pcflex.mll"
                    ( OR )
-# 293 "pcflex.ml"
+# 292 "pcflex.ml"
 
   | 16 ->
-# 104 "pcflex.mll"
+# 103 "pcflex.mll"
                    ( AND )
-# 298 "pcflex.ml"
+# 297 "pcflex.ml"
 
   | 17 ->
-# 105 "pcflex.mll"
+# 104 "pcflex.mll"
                    ( OR )
-# 303 "pcflex.ml"
+# 302 "pcflex.ml"
 
   | 18 ->
-# 106 "pcflex.mll"
+# 105 "pcflex.mll"
                    ( AND )
-# 308 "pcflex.ml"
+# 307 "pcflex.ml"
 
   | 19 ->
-# 107 "pcflex.mll"
+# 106 "pcflex.mll"
                  ( NOT )
-# 313 "pcflex.ml"
+# 312 "pcflex.ml"
 
   | 20 ->
-# 108 "pcflex.mll"
+# 107 "pcflex.mll"
           ( reset_string_buffer();
             in_string lexbuf;
             STRING (get_stored_string()) )
-# 320 "pcflex.ml"
+# 319 "pcflex.ml"
 
   | 21 ->
-# 111 "pcflex.mll"
+# 110 "pcflex.mll"
           ( in_cpp_comment lexbuf )
-# 325 "pcflex.ml"
+# 324 "pcflex.ml"
 
   | 22 ->
-# 112 "pcflex.mll"
+# 111 "pcflex.mll"
           ( in_c_comment lexbuf )
-# 330 "pcflex.ml"
+# 329 "pcflex.ml"
 
   | 23 ->
-# 113 "pcflex.mll"
+# 112 "pcflex.mll"
           (  EOF  )
-# 335 "pcflex.ml"
+# 334 "pcflex.ml"
 
   | 24 ->
-# 114 "pcflex.mll"
+# 113 "pcflex.mll"
           ( raise (LexError (lexbuf.Lexing.lex_start_p,
                              lexbuf.Lexing.lex_curr_p)) )
-# 341 "pcflex.ml"
+# 340 "pcflex.ml"
 
   | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_lex_rec lexbuf __ocaml_lex_state
@@ -347,19 +346,19 @@ and in_cpp_comment lexbuf =
 and __ocaml_lex_in_cpp_comment_rec lexbuf __ocaml_lex_state =
   match Lexing.engine __ocaml_lex_tables __ocaml_lex_state lexbuf with
       | 0 ->
-# 118 "pcflex.mll"
+# 117 "pcflex.mll"
          ( lex lexbuf )
-# 353 "pcflex.ml"
+# 352 "pcflex.ml"
 
   | 1 ->
-# 119 "pcflex.mll"
+# 118 "pcflex.mll"
          ( EOF )
-# 358 "pcflex.ml"
+# 357 "pcflex.ml"
 
   | 2 ->
-# 120 "pcflex.mll"
+# 119 "pcflex.mll"
          ( in_cpp_comment lexbuf )
-# 363 "pcflex.ml"
+# 362 "pcflex.ml"
 
   | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_in_cpp_comment_rec lexbuf __ocaml_lex_state
@@ -369,19 +368,19 @@ and in_c_comment lexbuf =
 and __ocaml_lex_in_c_comment_rec lexbuf __ocaml_lex_state =
   match Lexing.engine __ocaml_lex_tables __ocaml_lex_state lexbuf with
       | 0 ->
-# 123 "pcflex.mll"
+# 122 "pcflex.mll"
          ( lex lexbuf )
-# 375 "pcflex.ml"
+# 374 "pcflex.ml"
 
   | 1 ->
-# 124 "pcflex.mll"
+# 123 "pcflex.mll"
          ( EOF )
-# 380 "pcflex.ml"
+# 379 "pcflex.ml"
 
   | 2 ->
-# 125 "pcflex.mll"
+# 124 "pcflex.mll"
          ( in_c_comment lexbuf )
-# 385 "pcflex.ml"
+# 384 "pcflex.ml"
 
   | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_in_c_comment_rec lexbuf __ocaml_lex_state
@@ -391,19 +390,19 @@ and in_string lexbuf =
 and __ocaml_lex_in_string_rec lexbuf __ocaml_lex_state =
   match Lexing.engine __ocaml_lex_tables __ocaml_lex_state lexbuf with
       | 0 ->
-# 128 "pcflex.mll"
+# 127 "pcflex.mll"
          ( STRING (get_stored_string ()) )
-# 397 "pcflex.ml"
+# 396 "pcflex.ml"
 
   | 1 ->
 let
-# 129 "pcflex.mll"
+# 128 "pcflex.mll"
          c
-# 403 "pcflex.ml"
+# 402 "pcflex.ml"
 = Lexing.sub_lexeme_char lexbuf lexbuf.Lexing.lex_start_pos in
-# 130 "pcflex.mll"
+# 129 "pcflex.mll"
       ( store_string_char c; in_string lexbuf )
-# 407 "pcflex.ml"
+# 406 "pcflex.ml"
 
   | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_in_string_rec lexbuf __ocaml_lex_state
@@ -413,14 +412,14 @@ and skip_to_eol lexbuf =
 and __ocaml_lex_skip_to_eol_rec lexbuf __ocaml_lex_state =
   match Lexing.engine __ocaml_lex_tables __ocaml_lex_state lexbuf with
       | 0 ->
-# 133 "pcflex.mll"
+# 132 "pcflex.mll"
             ( () )
-# 419 "pcflex.ml"
+# 418 "pcflex.ml"
 
   | 1 ->
-# 134 "pcflex.mll"
+# 133 "pcflex.mll"
             ( skip_to_eol lexbuf )
-# 424 "pcflex.ml"
+# 423 "pcflex.ml"
 
   | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_skip_to_eol_rec lexbuf __ocaml_lex_state
