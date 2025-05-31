@@ -42,29 +42,48 @@ let write_csv path header row =
   output_char   oc '\n';
   close_out oc
 
-let rec exec_gate ctx gate_name =
-  (* récupère la définition *)
-  let gate =
+
+(* ------------------------------------------------------------------ *)
+let rec exec_gate_by_name ctx gate_name =
+  let gdef =
     try Hashtbl.find ctx.gates gate_name
-    with Not_found -> error ("Gate non trouvée : " ^ gate_name)
+    with Not_found -> error ("Gate "^gate_name^" inconnue")
   in
-  (* contexte local pour exécuter la porte *)
-  let local_ctx = { ctx with signals = ctx.signals } in
-  List.iter (fun id ->
-    let v = find ctx.signals id ("entrée de gate "^gate.name)
-    in Hashtbl.add local_ctx.signals id v
-  ) gate.inputs;
-  (* exécution des lignes *)
-  List.iter (function
-      | Assign (id, e) ->
-          let value = eval_expr local_ctx e in      (* ← appelle eval_expr *)
-          Hashtbl.replace local_ctx.signals id value
-  ) gate.body;
-  (* recopie des sorties dans les signaux globaux *)
-  List.iter (fun o ->
-    let v = find local_ctx.signals o ("sortie "^o^" de "^gate.name)
-    in Hashtbl.replace ctx.signals (gate.name ^ "." ^ o) v
-  ) gate.outputs
+  let actuals = List.map (fun id -> Var(id,None)) gdef.inputs in
+  exec_gate ctx gdef actuals
+(* ------------------------------------------------------------------ *)
+
+
+
+(* ----------------------------------------------------------------- *)
+and exec_gate ctx gdef actuals =
+  (* ------------------------------------------------------------------------------------------------ *)
+  (* 1. contexte local : copies indépendantes des signaux / instances pour ne rien polluer globalement *)
+  let local_ctx = {
+    ctx with
+      signals   = Hashtbl.copy ctx.signals;
+      instances = Hashtbl.copy ctx.instances;
+  } in
+
+  (* 2. recopie des arguments effectifs vers les paramètres formels *)
+  List.iter2
+    (fun formal actual_expr ->
+       let value = eval_expr ctx actual_expr in
+       Hashtbl.replace local_ctx.signals formal value)
+    gdef.inputs
+    actuals;
+
+  (* 3. exécution du corps *)
+  List.iter (eval_stmt local_ctx) gdef.body;
+
+  (* 4. recopie des sorties calculées dans le contexte global *)
+  List.iter
+    (fun o ->
+       let v = find local_ctx.signals o ("sortie "^o^" de "^gdef.name) in
+       Hashtbl.replace ctx.signals (gdef.name ^ "." ^ o) v)
+    gdef.outputs
+(* ----------------------------------------------------------------- *)
+
 
 and eval_expr ctx expr =
   let get_var name =
@@ -82,30 +101,69 @@ and eval_expr ctx expr =
   | Var (id,None) ->
       if Hashtbl.mem ctx.signals id then get_var id
       else if Hashtbl.mem ctx.gates id then (
-        exec_gate ctx id;                    (* calcule la gate si besoin *)
+        exec_gate_by_name ctx id;
+                    (* calcule la gate si besoin *)
         get_var id )
       else error ("Signal non défini : " ^ id)
-  | Var (id,Some sub) ->
+  | Var (id, Some sub) ->
       let full = id ^ "." ^ sub in
-      if not (Hashtbl.mem ctx.signals full) && Hashtbl.mem ctx.gates id
-      then exec_gate ctx id;                (* calcule la gate id *)
-      get_var full
+      (* si alias est dans les instances locales on l’exécute si besoin *)
+      (match Hashtbl.find_opt ctx.instances id with
+      | Some inst when not (Hashtbl.mem ctx.signals full) ->
+          exec_instance ctx inst
+      | _ -> ());
+      find ctx.signals full "signal"
+  | App (gname, actuals) ->
+    let gdef =
+      try Hashtbl.find ctx.gates gname
+      with Not_found -> error ("Gate "^gname^" inconnue") in
+    if List.length actuals <> List.length gdef.inputs then
+      error (Printf.sprintf "Arity mismatch : %s attend %d args"
+               gname (List.length gdef.inputs));
+    (* exécution et récupération de la première sortie *)
+    exec_gate ctx gdef actuals;
+    let key = gname ^ "." ^ (List.hd gdef.outputs) in
+    find ctx.signals key "résultat d'appel"
+
+
+and eval_stmt ctx = function
+  | Assign (id, e) ->
+      let value = eval_expr ctx e in               (* ← v → value *)
+      Hashtbl.replace ctx.signals id value
+  | InstAssign (alias, gname, actual_strings) ->
+      let gdef =
+        try Hashtbl.find ctx.gates gname
+        with Not_found -> error ("Gate "^gname^" inconnue") in
+      let actuals = List.map (fun id -> Var(id,None)) actual_strings in
+      (* enregistre l’instance *)
+      Hashtbl.replace ctx.instances alias { alias; gdef; actuals = actual_strings };
+      (* exécution immédiate *)
+      exec_gate ctx gdef actuals;                  (* ← exec_gate_by_name …  *)
+      (* recopie des sorties sous alias.* *)
+      List.iter
+        (fun o ->
+           let v = find ctx.signals (gdef.name ^ "." ^ o) "sortie" in
+           Hashtbl.replace ctx.signals (alias ^ "." ^ o) v)
+        gdef.outputs
+
+
 (* ────────────────────────────────────────────── *)
-let exec_instance ctx inst =
-  (* 1. lier paramètres formels -> signaux réels *)
+and exec_instance ctx inst =
+  (* 1. lier paramètres formels -> signaux réels -------------------- *)
   List.iter2
     (fun formal actual ->
        let v = find ctx.signals actual "signal" in
        Hashtbl.replace ctx.signals formal v)
     inst.gdef.inputs inst.actuals;
 
-  (* 2. exécuter la gate *)
-  exec_gate ctx inst.gdef.name;
+  (* 2. exécuter la gate de l’instance ------------------------------- *)
+  let actuals = List.map (fun id -> Var(id,None)) inst.actuals in
+  exec_gate ctx inst.gdef actuals;          (* ← appel correctement fermé *) 
 
-  (* 3. recopier tout ce qui commence par "gate." sous "alias." *)
-  let pref_in  = inst.gdef.name ^ "." in      (* ex. "fulladder." *)
+  (* 3. recopier les sorties sous alias.------------------------------ *)
+  let pref_in  = inst.gdef.name ^ "." in
   let len_in   = String.length pref_in in
-  let pref_out = inst.alias ^ "." in          (* ex. "fa."        *)
+  let pref_out = inst.alias ^ "." in
   Hashtbl.iter
     (fun k v ->
        if String.length k >= len_in &&
@@ -144,8 +202,7 @@ let ensure_columns ctx targets header0 =
           if Hashtbl.mem ctx.instances id then
             exec_instance ctx (Hashtbl.find ctx.instances id)
           else if Hashtbl.mem ctx.gates id then
-            exec_gate ctx id;
-
+            exec_gate_by_name ctx id;
           (* sorties officielles *)
           (match Hashtbl.find_opt ctx.instances id with
            | Some inst -> add_outputs inst.alias inst.gdef
@@ -173,7 +230,7 @@ let ensure_columns ctx targets header0 =
             if Hashtbl.mem ctx.instances id then
               exec_instance ctx (Hashtbl.find ctx.instances id)
             else
-              exec_gate ctx id;
+              exec_gate_by_name ctx id;
 
             (* 2. ajouter toutes ses sorties *)
             (match Hashtbl.find_opt ctx.instances id with
@@ -251,7 +308,7 @@ let run_program prog =
           | None -> id
           | Some sub ->
               let gate = id in
-              if Hashtbl.mem ctx.gates gate then exec_gate ctx gate;
+              if Hashtbl.mem ctx.gates gate then exec_gate_by_name ctx id;
               gate ^ "." ^ sub
         in
         let value = find ctx.signals full "print"
@@ -261,11 +318,11 @@ let run_program prog =
         (* 1.  Exécuter chaque cible pour remplir ctx.signals -------------- *)
         List.iter (function
           | TGate id when Hashtbl.mem ctx.gates id ->
-              exec_gate ctx id
+              exec_gate_by_name ctx id
           | TGate id when Hashtbl.mem ctx.instances id ->
               exec_instance ctx (Hashtbl.find ctx.instances id)
           | TSignal (id, _) when Hashtbl.mem ctx.gates id ->
-              exec_gate ctx id
+              exec_gate_by_name ctx id
           | TSignal (id, _) when Hashtbl.mem ctx.instances id ->
               exec_instance ctx (Hashtbl.find ctx.instances id)
           | _ -> ())

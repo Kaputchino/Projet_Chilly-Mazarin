@@ -9,10 +9,12 @@ type expr =
 
 type stmt =
   | Assign of string * expr
+  | InstAssign of string * string * string list
 
 type target =
   | TGate   of string                   (* ha, fa … *)
   | TSignal of string * string option   (* ha.sum / ha / a  *)
+  
 
 type decl =
   | InputDecl  of string * bool option
@@ -40,6 +42,8 @@ let rec print_expr oc = function
 
 let print_stmt oc = function
   | Assign (v, e) -> Printf.fprintf oc "%s = %a;" v print_expr e
+  | InstAssign (alias,g,actuals) ->
+      Printf.fprintf oc "%s = %s(%s);" alias g (String.concat ", " actuals)
 
 let print_decl oc = function
   | InputDecl (id, None) ->
