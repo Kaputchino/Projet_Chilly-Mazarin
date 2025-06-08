@@ -4,6 +4,7 @@ Déclarer une variable
 
 input a = true|false;
 
+input a; dans ce cas la a sera de type non déterminé, c'est à dire que le programme testera avec a = true et a =false
 
 
 déclarer une gate
