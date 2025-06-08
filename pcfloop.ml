@@ -26,7 +26,7 @@ let main () =
     print_newline ();
 
     (* 3. Exécuter le circuit et afficher les valeurs *)
-    ignore (Pcfsem.run_program prog)          (* <- appel indispensable *)
+    ignore (Pcfsem.run_program prog)          
 
   with
   | Failure msg ->

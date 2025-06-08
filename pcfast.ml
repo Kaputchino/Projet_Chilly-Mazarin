@@ -1,8 +1,3 @@
-(* ************************************************************************** *)
-(* pcfast.ml                                                                  *)
-(* Définitions des types de base : expr, stmt, target, decl, program          *)
-(* ************************************************************************** *)
-
 type expr =
   | True
   | False
@@ -10,46 +5,25 @@ type expr =
   | And    of expr * expr
   | Or     of expr * expr
   | Var    of string * string option
-      (* Var("x", None)         << "x"
-         Var("ha", Some "sum")  << "ha.sum" *)
   | Parens of expr
 
 type stmt =
   | Assign     of string * expr
-      (* Assign("sum", And(Var("x",None), Var("y",None))) << sum = x + y; *)
   | InstAssign of string * string * expr list
-      (* InstAssign(alias, gate_name, args_list)
-         ex. "ha1 = halfadder(x,y);" devient
-             InstAssign("ha1","halfadder",[Var("x",None);Var("y",None)]) *)
+
 
 type target =
   | TGate   of string
-      (* ex. TGate "ha", TGate "fa" *)
   | TSignal of string * string option
-      (* ex. TSignal("ha","sum") pour "ha.sum"
-         ou   TSignal("a",None) pour "a" *)
 
 type decl =
   | InputDecl  of string * bool option
-      (* InputDecl("a", Some true)  << input a = true;
-         InputDecl("sel", None)     << input sel; *)
   | GateDecl   of string * string list * string list * stmt list
-      (* GateDecl(name, inputs, outputs, body)
-         ex. GateDecl("halfadder", ["x"; "y"], ["sum"; "carry"], [Assign(...);...]) *)
   | InstDecl   of string * string * string list
-      (* InstDecl(alias, gate_name, actuals)
-         ex. InstDecl("ha","halfadder",["a";"b"]) << ha = halfadder(a,b); *)
   | PrintStmt  of string * string * string option
-      (* PrintStmt(message, id, opt_sub)
-         ex. PrintStmt("Somme","ha","sum") << print("Somme", ha.sum); *)
   | WriteStmt  of string * target list
-      (* WriteStmt("file.csv", [TSignal("a",None); TGate "ha"; TSignal("ha","sum")]) *)
 
 type program = decl list
-
-(* -------------------------------------------------------------------------- *)
-(* Fonctions auxiliaires pour l'affichage / transformation en chaîne de chars *)
-(* -------------------------------------------------------------------------- *)
 
 let rec string_of_expr = function
   | True               -> "true"
