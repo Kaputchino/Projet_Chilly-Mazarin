@@ -1,13 +1,10 @@
-(*─────────────────────────── pcfsem.ml ───────────────────────────*)
-open Pcfast                       (* on récupère expr, stmt, signal … *)
-
-(* ───────────────── 1 ▸ Types internes au moteur ───────────────── *)
+open Pcfast                      
 
 type context = {
-  input_tbl     : (string, signal) Hashtbl.t;      (* entrées déclarées         *)
-  signals   : (string, signal) Hashtbl.t;      (* tous les fils calculés    *)
-  gates     : (string, gatedef) Hashtbl.t;     (* définitions de portes     *)
-  instances : (string, instance) Hashtbl.t;    (* instances déjà créées     *)
+  input_tbl     : (string, signal) Hashtbl.t;     
+  signals   : (string, signal) Hashtbl.t;      
+  gates     : (string, gatedef) Hashtbl.t;     
+  instances : (string, instance) Hashtbl.t;    
 }
 and gatedef = {
   name    : string;
@@ -18,16 +15,10 @@ and gatedef = {
 and instance = {
   alias   : string;
   gdef    : gatedef;
-  actuals : string list;          (* [ "x" ; "y" ; "c" ]               *)
+  actuals : string list;          
 }
 
 let error msg = raise (Failure msg)
-
-
-
-
-
-(* ───────────────── 2 ▸ Petites fonctions utilitaires ───────────── *)
 
 let find tbl key kind =
   try Hashtbl.find tbl key
@@ -46,27 +37,19 @@ let or_sig  a b = match a,b with
   | TFalse , TFalse         -> TFalse
   | _      , _              -> TUndet
 
-(* CSV très simple ------------------------------------------------- *)
-(* CSV très simple ------------------------------------------------- *)
+
 let write_csv path header row =
-  (* le fichier existe-t-il déjà ? *)
   let already = Sys.file_exists path in
-  (* on ouvre en “append” pour conserver les anciennes lignes *)
   let oc =
     open_out_gen
-      [Open_creat; Open_append; Open_text]        (* création + ajout *)
+      [Open_creat; Open_append; Open_text]        
       0o666
       path
   in
-  (* on écrit l’en-tête seulement si le fichier vient d’être créé *)
   if not already then
     output_string oc (String.concat "," header ^ "\n");
-  (* on ajoute la ligne du scénario courant *)
   output_string oc (row ^ "\n");
   close_out oc
-
-
-(* ───────────────── 3 ▸ Évaluation des expressions ───────────────── *)
 
 let rec eval_expr ctx = function
   | True  -> TTrue
@@ -96,28 +79,23 @@ let rec eval_expr ctx = function
       end;
       find ctx.signals full "signal"
 
-(* ───────────────── 4 ▸ Exécution des portes ────────────────────── *)
 
 and exec_gate ctx gdef actuals =
-  (* contexte local isolé ----------------------------------------- *)
   let local = {
     ctx with
       signals   = Hashtbl.copy ctx.signals;
       instances = Hashtbl.copy ctx.instances;
   } in
-  (* 2. lier paramètres -> arguments  *)
-  (* 2. lier paramètres -> arguments -------------------------------- *)
+
   List.iter2
     (fun formal expr ->
       let v = eval_expr ctx expr in
       Hashtbl.replace local.signals formal v
     )
     gdef.inputs
-    actuals;          (* ← point-virgule ici, pas avant *)
+    actuals;        
 
-  (* exécuter chaque ligne ---------------------------------------- *)
   List.iter (eval_stmt local) gdef.body;
-  (* recopier les sorties vers le contexte appelant ----------------*)
   List.iter
     (fun o ->
        let v = find local.signals o "sortie" in
@@ -129,7 +107,6 @@ and exec_gate_by_name ctx name =
   let actuals = List.map (fun id -> Var(id,None)) gdef.inputs in
   exec_gate ctx gdef actuals
 
-(* ───────────────── 5 ▸ Instructions du corps d’une gate ────────── *)
 
 and eval_stmt ctx = function
   | Assign (id,e) ->
@@ -154,7 +131,6 @@ and eval_stmt ctx = function
            Hashtbl.replace ctx.signals (alias ^ "." ^ o) v)
         gdef.outputs
 
-(* ───────────────── 6 ▸ Exécution d’une instance existante ──────── *)
 
 and exec_instance ctx inst =
   List.iter2
@@ -172,24 +148,19 @@ and exec_instance ctx inst =
     inst.gdef.outputs
 
 
-(* ───────────────── Garantie qu’un signal existe ──────────────── *)
 and ensure_signal ctx id =
-  (* 1. Le signal est déjà présent ? *)
   if Hashtbl.mem ctx.signals id then ()
   else
-    (* 2. On récupère la partie avant le point, s’il y en a un *)
     let base =
       match String.index_opt id '.' with
       | None   -> id
       | Some i -> String.sub id 0 i
     in
-    (* 3. Le signal est produit par une instance ou par une gate ? *)
     if Hashtbl.mem ctx.instances base then
       exec_instance ctx (find ctx.instances base "inst")
     else if Hashtbl.mem ctx.gates base then
       exec_gate_by_name ctx base
 
-  (* ───────────────── Exploration récursive des scénarios ──────────── *)
 let with_all_scenarios ctx undet_inputs body =
   let total   = 1 lsl List.length undet_inputs in
   let counter = ref 0 in
@@ -219,7 +190,6 @@ let with_all_scenarios ctx undet_inputs body =
         explore ctx_false rest
   in
   explore ctx undet_inputs
-(* ───────────────── 7 ▸ WRITE : utilitaires CSV ─────────────────── *)
 
 let read_header_if_exists path =
   if Sys.file_exists path then
@@ -251,7 +221,6 @@ let rec ensure_columns ctx targets header0 =
     targets;
   !cols
 
-(* ───────────────── 8 ▸ Boucle principale “run_program” ─────────── *)
 
 let run_program prog =
   (* Contexte initial *)
@@ -262,7 +231,6 @@ let run_program prog =
     instances = Hashtbl.create 32;
   } in
 
-    (* ———  Liste des CSV mentionnés dans le programme  ——— *)
   let csv_paths =
     List.fold_left
       (fun acc stmt ->
@@ -272,10 +240,8 @@ let run_program prog =
       []
       prog
   in
-  (* ———  On les supprime pour repartir de zéro à chaque exécution  ——— *)
   List.iter (fun p -> if Sys.file_exists p then Sys.remove p) csv_paths;
 
-  (* Phase d’enregistrement + exécution immédiate des instances *)
   List.iter (function
     | InputDecl (id,opt) ->
         let v = Option.value ~default:TUndet opt in
@@ -287,7 +253,7 @@ let run_program prog =
         let gdef = find ctx0.gates gname "gate" in
         let inst = { alias; gdef; actuals } in
         Hashtbl.add ctx0.instances alias inst;
-        exec_instance ctx0 inst          (* garantit l’ordre source *)
+        exec_instance ctx0 inst          
     | _ -> ()) prog;
 
   (* Entrées indéterminées *)
@@ -298,28 +264,24 @@ let run_program prog =
 
   (* Corps exécuté dans chaque scénario *)
   let scenario_body ctx =
-    (* impression automatique des entrées *)
     Hashtbl.iter (fun _ inst -> exec_instance ctx inst) ctx.instances;
     Hashtbl.iter
       (fun id v ->
          Printf.printf "input %s = %s\n" id (str_of_sig v))
       ctx.input_tbl;
 
-    (* exécution séquentielle des PrintStmt / WriteStmt *)
     List.iter (function
       | PrintStmt (msg, id, opt) ->
-          (* s’assurer que la gate ou l’instance est exécutée *)
           if Hashtbl.mem ctx.instances id then
             exec_instance ctx (find ctx.instances id "inst")
           else if Hashtbl.mem ctx.gates id then
             exec_gate_by_name ctx id;
-          (* nom complet du signal à afficher *)
           let full =
             match opt with
             | None   -> id
             | Some s -> id ^ "." ^ s
           in
-          ensure_signal ctx full;                    (* par sécurité *)
+          ensure_signal ctx full;                    
           let v = find ctx.signals full "print" in
           Printf.printf "%s %s = %s\n" msg full (str_of_sig v)
 
@@ -346,7 +308,6 @@ let run_program prog =
       | _ -> ()) prog
   in
 
-  (* Exploration de tous les scénarios *)
   with_all_scenarios ctx0 undet_inputs scenario_body;
 
   ctx0

@@ -1,6 +1,3 @@
-(*─────────────────────────── pcfast.ml ────────────────────────────*)
-
-(* ── 1.  Valeurs logiques ──────────────────────────────────────── *)
 type signal = TTrue | TFalse | TUndet
 
 let str_of_sig = function
@@ -8,39 +5,34 @@ let str_of_sig = function
   | TFalse -> "false"
   | TUndet -> "undet"
 
-(* ── 2.  Expressions ───────────────────────────────────────────── *)
 type expr =
   | True
   | False
   | Not    of expr
   | And    of expr * expr
   | Or     of expr * expr
-  | Var    of string * string option      (* x   |  ha.sum *)
+  | Var    of string * string option    
   | Parens of expr
 
-(* ── 3.  Instructions dans le corps d’une gate ─────────────────── *)
 type stmt =
   | Assign     of string * expr
-  | InstAssign of string           (* alias local    *)
-               * string           (* nom de la gate *)
-               * expr   list      (* arguments (expr) *)
+  | InstAssign of string           
+               * string          
+               * expr   list      
 
-(* ── 4.  Cibles du WRITE │PRINT ────────────────────────────────── *)
 type target =
   | TGate   of string
   | TSignal of string * string option
 
-(* ── 5.  Déclarations top-level ────────────────────────────────── *)
 type decl =
   | InputDecl  of string * signal option
   | GateDecl   of string * string list * string list * stmt list
-  | InstDecl   of string * string * string list    (* alias = gate(args…) *)
+  | InstDecl   of string * string * string list    
   | PrintStmt  of string * string * string option
   | WriteStmt  of string * target list
 
 type program = decl list
 
-(* ── 6.  Fonctions d’affichage (debug) ─────────────────────────── *)
 
 let rec string_of_expr = function
   | True               -> "true"

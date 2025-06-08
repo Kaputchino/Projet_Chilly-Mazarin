@@ -24,7 +24,6 @@ let get_stored_string () =
   string_buff := initial_string_buffer;
   s;;
 
-(* To translate escape sequences *)
 
 let char_for_backslash c = match c with
 | 'n' -> '\010'
