@@ -8,10 +8,10 @@
 
 ## 1 . Motivation
 
-Chilly-Mazarin est un **langage dédié** à la description et à l’exécution de
+Ce est un **langage dédié** à la description et à l’exécution de
 petits circuits logiques :
 
-* syntaxe proche d’un pseudo-code C/Verilog minimal ;
+* syntaxe proche d’un pseudo-code C;
 * possibilité de définir des *gates* réutilisables et de les instancier
   hiérarchiquement ;
 * gestion d’un troisième état **`undet`** pour explorer tous les scénarios
