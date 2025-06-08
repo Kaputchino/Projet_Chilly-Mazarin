@@ -1,2 +1,5 @@
 a,sel,b,cin,ha.sum,ha.carry,fa.sum,fa.carry,selM.out
-FALSE,FALSE,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,TRUE
+true,true,true,false,false,true,false,true,false
+false,true,true,false,true,false,true,false,true
+true,false,true,false,false,true,false,true,false
+false,false,true,false,true,false,true,false,true
