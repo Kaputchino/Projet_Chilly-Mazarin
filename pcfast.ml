@@ -1,3 +1,4 @@
+type signal = TTrue | TFalse | TUndet
 type expr =
   | True
   | False
@@ -16,12 +17,6 @@ type target =
   | TGate   of string
   | TSignal of string * string option
 
-type decl =
-  | InputDecl  of string * bool option
-  | GateDecl   of string * string list * string list * stmt list
-  | InstDecl   of string * string * string list
-  | PrintStmt  of string * string * string option
-  | WriteStmt  of string * target list
 
 type program = decl list
 
@@ -34,6 +29,21 @@ let rec string_of_expr = function
   | Var (id,None)      -> id
   | Var (id,Some sub)  -> Printf.sprintf "%s.%s" id sub
   | Parens e           -> Printf.sprintf "(%s)"    (string_of_expr e)
+
+type decl =         
+  | InputDecl of string * signal option
+  | GateDecl  of string * string list * string list * stmt list
+  | InstDecl  of string * string * string list
+  | PrintStmt of string * string * string option
+  | WriteStmt of string * target list
+                
+  
+
+
+let str_of_sig = function                 (* 3 *)
+  | TTrue  -> "true"
+  | TFalse -> "false"
+  | TUndet -> "undet"
 
 let rec print_expr oc = function
   | True                -> output_string oc "true"
@@ -56,7 +66,9 @@ let print_decl oc = function
   | InputDecl (id, None) ->
       Printf.fprintf oc "input %s;" id
   | InputDecl (id, Some v) ->
-      Printf.fprintf oc "input %s = %s;" id (if v then "true" else "false")
+      Printf.fprintf oc "input %s = %s;" id (str_of_sig v)
+  | InstDecl (alias, gname, actuals) ->
+      Printf.fprintf oc "%s = %s(%s);" alias gname (String.concat ", " actuals)
   | GateDecl (name, ins, outs, stmts) ->
       Printf.fprintf oc "gate %s(%s)(%s) {\n" name
         (String.concat ", " ins)
