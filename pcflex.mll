@@ -2,9 +2,6 @@
  open Pcfparse ;;
   exception Eoi ;;
 
-(* Emprunt� de l'analyseur lexical du compilateur OCaml *)
-(* To buffer string literals *)
-
 let initial_string_buffer = Bytes.create 256;;
   let string_buff = ref initial_string_buffer;;
   let string_index = ref 0;;
@@ -72,10 +69,9 @@ let newline = ('\010' | '\013' | "\013\010")
 
 rule lex = parse
     (' ' | '\t')
-      { lex lexbuf }     (* on passe les espaces *)
+      { lex lexbuf }     
   | newline
-      { (* On passe les retours � la ligne mais on garde trace de la ligne
-           courante. *)
+      { 
         incr_line_number lexbuf ;
         lex lexbuf }
 | ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm
@@ -86,7 +82,6 @@ rule lex = parse
         | "true" -> TRUE
         | "false" -> FALSE
         | "write" -> WRITE
-        | "fill" -> FILL
         | _ -> IDENT(lxm) }
   | "."          { DOT }
   | "="          { EQUAL }
@@ -115,7 +110,7 @@ rule lex = parse
                              lexbuf.Lexing.lex_curr_p)) }
 
 and in_cpp_comment = parse
-  | '\n' { lex lexbuf }            (* retourne ce que donnera lex *)
+  | '\n' { lex lexbuf }          
   | eof  { EOF }
   | _    { in_cpp_comment lexbuf }
 
@@ -125,7 +120,7 @@ and in_c_comment = parse
   | _    { in_c_comment lexbuf }
 
 and in_string = parse
-  | '"'  { STRING (get_stored_string ()) }   (* ← on ferme la chaîne *)
+  | '"'  { STRING (get_stored_string ()) }   
   | _ as c
       { store_string_char c; in_string lexbuf }
 
